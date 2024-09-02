@@ -2,21 +2,30 @@ package random
 
 import (
 	"math/rand"
+	"slices"
 	"time"
 )
 
-func NewRandomString(length int) string {
-	//todo pass alp for test
-	//option 1 in default case pass const that impl here
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	chars := []rune(
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-			"abcdefghijklmnopqrstuvwxyz" +
-			"0123456789",
-	)
+func SliceAlp(start rune, end rune) []rune {
+	res := make([]rune, start-end+1)
 
-	// todo it is test value
-	chars = []rune("ab")
+	for it := start; it <= end; it++ {
+		res = append(res, it)
+	}
+
+	return res
+}
+
+func AlphaNumAlp() []rune {
+	return slices.Concat(
+		SliceAlp('0', '9'),
+		SliceAlp('a', 'z'),
+		SliceAlp('A', 'Z'),
+	)
+}
+
+func NewRandomString(length int, chars []rune) string {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	res := make([]rune, length)
 

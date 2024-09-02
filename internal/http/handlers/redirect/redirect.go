@@ -1,4 +1,4 @@
-package handler
+package redirect
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ type urlGetter interface {
 	GetURL(alias string) (string, error)
 }
 
-func Redirect(getter urlGetter) http.HandlerFunc {
+func New(getter urlGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mwLogger.GetCtxLog(r.Context(), "handlers.save.New")
 

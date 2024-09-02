@@ -1,4 +1,4 @@
-package handler
+package save
 
 import (
 	"errors"
@@ -27,7 +27,7 @@ type urlSaver interface {
 	SaveURL(urlToSave string, alias string) error
 }
 
-func Save(saver urlSaver) http.HandlerFunc {
+func New(saver urlSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mwLogger.GetCtxLog(r.Context(), "handlers.save.New")
 
@@ -53,15 +53,15 @@ func Save(saver urlSaver) http.HandlerFunc {
 
 		log.Debug("request is valid")
 
-		if req.Alias != "" {
-			saveWithoutAlias(w, r, saver, log, req.URL, req.Alias)
+		if req.Alias == "" {
+			saveWithoutAlias(w, r, saver, log, req.URL)
 		} else {
-			saveWithAlias(w, r, saver, log, req.Alias)
+			saveWithAlias(w, r, saver, log, req.URL, req.Alias)
 		}
 	}
 }
 
-func saveWithoutAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string, alias string) {
+func saveWithAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string, alias string) {
 	err := saver.SaveURL(url, alias)
 	if errors.Is(err, storage.ErrAliasExists) {
 		log.Info("alias was not added to database because it already exists")
@@ -82,11 +82,12 @@ func saveWithoutAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, lo
 	})
 }
 
-func saveWithAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string) {
+func saveWithoutAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string) {
 	// todo remove literal
 	aliasLen := 2
-	alias := random.NewRandomString(aliasLen)
+	alias := random.NewRandomString(aliasLen, random.AlphaNumAlp())
 
+	//todo remove literal
 	for i := 0; i < 100; i++ {
 		err := saver.SaveURL(url, alias)
 
@@ -98,7 +99,7 @@ func saveWithAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *
 
 		if errors.Is(err, storage.ErrAliasExists) {
 			log.Info("existing alias was generated", slog.String("alias", alias), slog.Int("number", i))
-			alias = random.NewRandomString(aliasLen)
+			alias = random.NewRandomString(aliasLen, random.AlphaNumAlp())
 			continue
 		}
 
@@ -110,11 +111,4 @@ func saveWithAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *
 
 		break
 	}
-
-	log.Info("url added", slog.String("alias", alias))
-
-	render.JSON(w, r, response{
-		Response: Api.Ok(),
-		Alias:    alias,
-	})
 }

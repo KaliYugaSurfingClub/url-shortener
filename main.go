@@ -4,7 +4,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"link_shortener/internal/config"
-	"link_shortener/internal/http/handlers"
+	"link_shortener/internal/http/handlers/redirect"
+	"link_shortener/internal/http/handlers/save"
 	"link_shortener/internal/http/middlewares/mwLogger"
 	"link_shortener/internal/storage/sqlite"
 	"log/slog"
@@ -13,7 +14,6 @@ import (
 )
 
 func main() {
-
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
 
@@ -30,8 +30,8 @@ func main() {
 	router.Use(middleware.URLFormat)
 	router.Use(mwLogger.New(log))
 
-	router.Post("/url", handler.Save(storage))
-	router.Get("/{alias}", handler.Redirect(storage))
+	router.Post("/url", save.New(storage))
+	router.Get("/{alias}", redirect.New(storage))
 
 	server := &http.Server{
 		Addr:         cfg.Address,
