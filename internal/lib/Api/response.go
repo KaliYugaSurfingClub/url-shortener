@@ -1,4 +1,4 @@
-package response
+package Api
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ func Error(msg string) Response {
 	}
 }
 
-// todo smthStruct.use("url", field %s is a required field)
+// todo maybe smthStruct.use("url", field %s is a required field)
 
 func ValidationError(errs validator.ValidationErrors) Response {
 	var errMsgs []string
@@ -43,7 +43,7 @@ func ValidationError(errs validator.ValidationErrors) Response {
 		case "url":
 			errMsgs = append(errMsgs, fmt.Sprintf("field %s is not a valid URL", err.Field()))
 		case "alphanumunicode":
-			errMsgs = append(errMsgs, fmt.Sprintf("field %s contains not only alphanum", err.Field()))
+			errMsgs = append(errMsgs, fmt.Sprintf("field %s must contains only letters and nums", err.Field()))
 		default:
 			errMsgs = append(errMsgs, fmt.Sprintf("field %s is not valid", err.Field()))
 		}

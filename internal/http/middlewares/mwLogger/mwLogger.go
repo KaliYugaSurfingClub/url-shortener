@@ -1,6 +1,7 @@
 package mwLogger
 
 import (
+	"context"
 	"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
 	"net/http"
@@ -13,6 +14,9 @@ func New(log *slog.Logger) func(http.Handler) http.Handler {
 
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, "log", log)
 
 			t1 := time.Now()
 			defer func() {
@@ -27,9 +31,22 @@ func New(log *slog.Logger) func(http.Handler) http.Handler {
 					slog.String("request_id", middleware.GetReqID(r.Context())),
 				)
 			}()
-			next.ServeHTTP(ww, r)
+			next.ServeHTTP(ww, r.WithContext(ctx))
 		}
 
 		return http.HandlerFunc(fn)
 	}
+}
+
+func GetCtxLog(ctx context.Context, operation string) *slog.Logger {
+	if ctx == nil {
+		return nil
+	}
+
+	log, ok := ctx.Value("log").(*slog.Logger)
+	if !ok {
+		return nil
+	}
+
+	return log.With("operation", operation)
 }
