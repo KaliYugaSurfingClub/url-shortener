@@ -27,7 +27,9 @@ func New(storagePath string) (*Storage, error) {
 		CREATE TABLE IF NOT EXISTS url(
 			id INTEGER PRIMARY KEY,
 			alias TEXT NOT NULL UNIQUE,
-			url TEXT NOT NULL);
+			url TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	  	);
 	`)
 
 	if err != nil {
