@@ -6,12 +6,17 @@ import (
 )
 
 func NewRandomString(length int) string {
+	//todo pass alp for test
+	//option 1 in default case pass const that impl here
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	chars := []rune(
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 			"abcdefghijklmnopqrstuvwxyz" +
 			"0123456789",
 	)
+
+	// todo it is test value
+	chars = []rune("ab")
 
 	res := make([]rune, length)
 

@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
 
@@ -25,9 +26,9 @@ func main() {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
-	router.Use(mwLogger.New(log))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
+	router.Use(mwLogger.New(log))
 
 	router.Post("/url", handler.Save(storage))
 	router.Get("/{alias}", handler.Redirect(storage))

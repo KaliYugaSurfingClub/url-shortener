@@ -32,46 +32,32 @@ func Save(saver urlSaver) http.HandlerFunc {
 		log := mwLogger.GetCtxLog(r.Context(), "handlers.save.New")
 
 		var req request
+
 		if err := render.DecodeJSON(r.Body, &req); err != nil {
 			log.Error("cannot decode request", sl.ErrorAttr(err))
 			render.JSON(w, r, Api.Error("cannot decode request"))
 			return
 		}
+
 		log = log.With(slog.Any("request", req))
+
 		log.Debug("request body decoded")
 
 		if errs := validator.New().Struct(req); errs != nil {
 			log.Error("validation error", slog.String("error", errs.Error()))
+
 			errForUser := Api.ValidationError(errs.(validator.ValidationErrors))
 			render.JSON(w, r, errForUser)
 			return
 		}
+
 		log.Debug("request is valid")
 
-		alias := req.Alias
-		if alias == "" {
-			alias = random.NewRandomString(4)
+		if req.Alias != "" {
+			saveWithoutAlias(w, r, saver, log, req.URL, req.Alias)
+		} else {
+			saveWithAlias(w, r, saver, log, req.Alias)
 		}
-		log = log.With(slog.String("alias", alias))
-
-		err := saver.SaveURL(req.URL, alias)
-		if errors.Is(err, storage.ErrAliasExists) && req.Alias != "" {
-			log.Info("alias was not added to database because it already exists")
-			render.JSON(w, r, Api.Error(storage.ErrAliasExists.Error()))
-			return
-		}
-		if err != nil {
-			log.Error("failed to add url", slog.String("error", err.Error()))
-			render.JSON(w, r, Api.Error("failed to add url"))
-			return
-		}
-
-		log.Info("url added")
-
-		render.JSON(w, r, response{
-			Response: Api.Ok(),
-			Alias:    req.Alias,
-		})
 	}
 }
 
@@ -83,12 +69,52 @@ func saveWithoutAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, lo
 		return
 	}
 	if err != nil {
-		log.Error("failed to add url", slog.String("error", err.Error()))
+		log.Error("failed to add url", sl.ErrorAttr(err))
 		render.JSON(w, r, Api.Error("failed to add url"))
 		return
 	}
+
+	log.Info("url added")
+
+	render.JSON(w, r, response{
+		Response: Api.Ok(),
+		Alias:    alias,
+	})
 }
 
-func saveWithAlias() {
+func saveWithAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string) {
+	// todo remove literal
+	aliasLen := 2
+	alias := random.NewRandomString(aliasLen)
 
+	for i := 0; i < 100; i++ {
+		err := saver.SaveURL(url, alias)
+
+		if i == 99 {
+			log.Error("failed to generate url after 100 trys")
+			render.JSON(w, r, Api.Error("failed to generate alias"))
+			return
+		}
+
+		if errors.Is(err, storage.ErrAliasExists) {
+			log.Info("existing alias was generated", slog.String("alias", alias), slog.Int("number", i))
+			alias = random.NewRandomString(aliasLen)
+			continue
+		}
+
+		if err != nil {
+			log.Error("failed to add url", sl.ErrorAttr(err))
+			render.JSON(w, r, Api.Error("failed to add url"))
+			return
+		}
+
+		break
+	}
+
+	log.Info("url added", slog.String("alias", alias))
+
+	render.JSON(w, r, response{
+		Response: Api.Ok(),
+		Alias:    alias,
+	})
 }

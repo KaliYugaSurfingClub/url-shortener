@@ -47,12 +47,13 @@ func New(storagePath string) (*Storage, error) {
 func (s *Storage) SaveURL(urlToSave string, alias string) error {
 	const op = "storage.sqlite.SaveURL"
 
+	//todo what will happened if alias is empty string
+
 	stmt, err := s.db.Prepare("INSERT INTO url(alias, url) VALUES(?, ?)")
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	//todo find out more about errors pkg and errors in go
 	_, err = stmt.Exec(alias, urlToSave)
 	if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
 		return fmt.Errorf("%s: %w", op, storage.ErrAliasExists)
