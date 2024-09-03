@@ -6,11 +6,11 @@ import (
 	"github.com/go-playground/validator"
 	"link_shortener/internal/http/middlewares/mwLogger"
 	"link_shortener/internal/lib/Api"
-	"link_shortener/internal/lib/random"
 	"link_shortener/internal/lib/sl"
 	"link_shortener/internal/storage"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 type request struct {
@@ -24,7 +24,7 @@ type response struct {
 }
 
 type urlSaver interface {
-	SaveURL(urlToSave string, alias string) error
+	SaveURL(urlToSave string, alias string, timeToGenerate time.Duration) (string, error)
 }
 
 func New(saver urlSaver) http.HandlerFunc {
@@ -39,9 +39,7 @@ func New(saver urlSaver) http.HandlerFunc {
 			return
 		}
 
-		log = log.With(slog.Any("request", req))
-
-		log.Debug("request body decoded")
+		log.Debug("request was decoded", slog.Any("request", req))
 
 		if errs := validator.New().Struct(req); errs != nil {
 			log.Error("validation error", slog.String("error", errs.Error()))
@@ -51,64 +49,29 @@ func New(saver urlSaver) http.HandlerFunc {
 			return
 		}
 
-		log.Debug("request is valid")
+		alias, err := saver.SaveURL(req.URL, req.Alias, 1*time.Second)
 
-		if req.Alias == "" {
-			saveWithoutAlias(w, r, saver, log, req.URL)
-		} else {
-			saveWithAlias(w, r, saver, log, req.URL, req.Alias)
-		}
-	}
-}
-
-func saveWithAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string, alias string) {
-	err := saver.SaveURL(url, alias)
-	if errors.Is(err, storage.ErrAliasExists) {
-		log.Info("alias was not added to database because it already exists")
-		render.JSON(w, r, Api.Error(storage.ErrAliasExists.Error()))
-		return
-	}
-	if err != nil {
-		log.Error("failed to add url", sl.ErrorAttr(err))
-		render.JSON(w, r, Api.Error("failed to add url"))
-		return
-	}
-
-	log.Info("url added")
-
-	render.JSON(w, r, response{
-		Response: Api.Ok(),
-		Alias:    alias,
-	})
-}
-
-func saveWithoutAlias(w http.ResponseWriter, r *http.Request, saver urlSaver, log *slog.Logger, url string) {
-	// todo remove literal
-	aliasLen := 2
-	alias := random.NewRandomString(aliasLen, random.AlphaNumAlp())
-
-	//todo remove literal
-	for i := 0; i < 100; i++ {
-		err := saver.SaveURL(url, alias)
-
-		if i == 99 {
-			log.Error("failed to generate url after 100 trys")
-			render.JSON(w, r, Api.Error("failed to generate alias"))
+		switch {
+		case errors.Is(err, storage.NotEnoughTimeToGenerate):
+			log.Info(err.Error())
+			render.JSON(w, r, Api.Error(err.Error()))
 			return
-		}
-
-		if errors.Is(err, storage.ErrAliasExists) {
-			log.Info("existing alias was generated", slog.String("alias", alias), slog.Int("number", i))
-			alias = random.NewRandomString(aliasLen, random.AlphaNumAlp())
-			continue
-		}
-
-		if err != nil {
+		//409
+		case errors.Is(err, storage.ErrAliasExists):
+			log.Info(err.Error())
+			render.JSON(w, r, Api.Error(err.Error()))
+			return
+		case err != nil:
 			log.Error("failed to add url", sl.ErrorAttr(err))
 			render.JSON(w, r, Api.Error("failed to add url"))
 			return
 		}
 
-		break
+		log.Info("alias was added", slog.String("alias", alias))
+
+		render.JSON(w, r, response{
+			Response: Api.Ok(),
+			Alias:    alias,
+		})
 	}
 }

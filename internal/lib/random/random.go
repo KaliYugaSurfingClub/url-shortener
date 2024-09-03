@@ -7,7 +7,7 @@ import (
 )
 
 func SliceAlp(start rune, end rune) []rune {
-	res := make([]rune, start-end+1)
+	res := make([]rune, 0, end-start+1)
 
 	for it := start; it <= end; it++ {
 		res = append(res, it)

@@ -24,6 +24,7 @@ func Ok() Response {
 	}
 }
 
+// todo pass errors
 func Error(msg string) Response {
 	return Response{
 		Error:  msg,
