@@ -2,6 +2,7 @@ package save
 
 import (
 	"errors"
+	"fmt"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 	"link_shortener/internal/http/middlewares/mwLogger"
@@ -10,6 +11,7 @@ import (
 	"link_shortener/internal/storage"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -39,19 +41,16 @@ func New(saver urlSaver) http.HandlerFunc {
 			return
 		}
 
-		log.Debug("request was decoded", slog.Any("request", req))
-
-		if errs := validator.New().Struct(req); errs != nil {
-			log.Error("validation error", slog.String("error", errs.Error()))
-
-			errForUser := Api.ValidationError(errs.(validator.ValidationErrors))
-			render.JSON(w, r, errForUser)
+		if resp, err := validateRequest(req, r.Host); err != nil {
+			log.Error("validation failed", sl.ErrorAttr(err))
+			render.JSON(w, r, resp)
 			return
 		}
 
 		alias, err := saver.SaveURL(req.URL, req.Alias, 1*time.Second)
 
 		switch {
+		//524
 		case errors.Is(err, storage.NotEnoughTimeToGenerate):
 			log.Info(err.Error())
 			render.JSON(w, r, Api.Error(err.Error()))
@@ -61,6 +60,7 @@ func New(saver urlSaver) http.HandlerFunc {
 			log.Info(err.Error())
 			render.JSON(w, r, Api.Error(err.Error()))
 			return
+		//500
 		case err != nil:
 			log.Error("failed to add url", sl.ErrorAttr(err))
 			render.JSON(w, r, Api.Error("failed to add url"))
@@ -74,4 +74,47 @@ func New(saver urlSaver) http.HandlerFunc {
 			Alias:    alias,
 		})
 	}
+}
+
+func validateRequest(req request, currentHost string) (Api.Response, error) {
+	const op = "handlers.save.validateRequest"
+
+	if errs := validator.New().Struct(req); errs != nil {
+		return Api.ValidationError(errs.(validator.ValidationErrors)), errs
+	}
+
+	urlForShort, err := url.Parse(req.URL)
+	if err != nil {
+		return Api.Error("url is not correct"), fmt.Errorf("%s: %w", op, err)
+	}
+
+	//todo getBannedHosts is not implemented
+	bannedHosts, err := getBannedHosts()
+	if err != nil {
+		return Api.Error("server error"), fmt.Errorf("%s: %w", op, err)
+	}
+
+	if _, contains := bannedHosts[urlForShort.Host]; contains || urlForShort.Host == currentHost {
+		return Api.Error("deprecated url"), fmt.Errorf("%s: %w", op, err)
+	}
+
+	return Api.Ok(), nil
+}
+
+// todo move this from here
+// maybe other service with noSQL db for adding new deprecated urls
+func getBannedHosts() (map[string]struct{}, error) {
+	const op = "getBannedHosts"
+
+	res := make(map[string]struct{})
+
+	////..adding deprecated ports to res....
+	//
+	//currentPort, err := http.
+	//if err != nil {
+	//	return nil, fmt.Errorf("%s: %w", op, err)
+	//}
+	//res[currentPort] = struct{}{}
+
+	return res, nil
 }
