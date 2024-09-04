@@ -48,5 +48,5 @@ func GetCtxLog(ctx context.Context, operation string) *slog.Logger {
 		return nil
 	}
 
-	return log.With("operation", operation)
+	return log.With("op", operation)
 }

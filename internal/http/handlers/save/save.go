@@ -25,11 +25,11 @@ type response struct {
 	Alias string `json:"alias"`
 }
 
-type urlSaver interface {
-	SaveURL(urlToSave string, alias string, timeToGenerate time.Duration) (string, error)
+type aliasSaver interface {
+	SaveAlias(originalURL string, alias string, timeToGenerate time.Duration) (string, error)
 }
 
-func New(saver urlSaver) http.HandlerFunc {
+func New(saver aliasSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mwLogger.GetCtxLog(r.Context(), "handlers.save.New")
 
@@ -47,23 +47,21 @@ func New(saver urlSaver) http.HandlerFunc {
 			return
 		}
 
-		alias, err := saver.SaveURL(req.URL, req.Alias, 1*time.Second)
+		alias, err := saver.SaveAlias(req.URL, req.Alias, 1*time.Second)
 
-		switch {
-		//524
-		case errors.Is(err, storage.NotEnoughTimeToGenerate):
+		if errors.Is(err, storage.ErrAliasExists) {
 			log.Info(err.Error())
 			render.JSON(w, r, Api.Error(err.Error()))
 			return
-		//409
-		case errors.Is(err, storage.ErrAliasExists):
-			log.Info(err.Error())
+		}
+		if errors.Is(err, storage.NotEnoughTimeToGenerate) {
+			log.Error(err.Error())
 			render.JSON(w, r, Api.Error(err.Error()))
 			return
-		//500
-		case err != nil:
-			log.Error("failed to add url", sl.ErrorAttr(err))
-			render.JSON(w, r, Api.Error("failed to add url"))
+		}
+		if err != nil {
+			log.Error("failed to save, internal error in db", sl.ErrorAttr(err))
+			render.JSON(w, r, Api.Error("failed to save alias"))
 			return
 		}
 

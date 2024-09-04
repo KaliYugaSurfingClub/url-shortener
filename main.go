@@ -7,10 +7,12 @@ import (
 	"link_shortener/internal/http/handlers/redirect"
 	"link_shortener/internal/http/handlers/save"
 	"link_shortener/internal/http/middlewares/mwLogger"
+	"link_shortener/internal/services/cleaner"
 	"link_shortener/internal/storage/sqlite"
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 )
 
 func main() {
@@ -42,6 +44,8 @@ func main() {
 	}
 
 	log.Info("starting server", slog.String("address", server.Addr))
+
+	go cleaner.Start(log, storage, 2*time.Minute, time.Minute)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Error("cant start server", slog.String("error", err.Error()))

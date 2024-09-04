@@ -7,8 +7,3 @@ var (
 	ErrAliasExists          = errors.New("alias already exists")
 	NotEnoughTimeToGenerate = errors.New("failed to generate in the allotted time")
 )
-
-type Err struct {
-	logMsg      string
-	responseMsg string
-}

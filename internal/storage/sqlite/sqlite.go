@@ -50,8 +50,8 @@ func New(storagePath string) (*Storage, error) {
 	return &Storage{db}, nil
 }
 
-func (s *Storage) SaveURL(urlToSave string, alias string, timeToGenerate time.Duration) (string, error) {
-	const op = "storage.sqlite.SaveURL"
+func (s *Storage) SaveAlias(originalURL string, alias string, timeToGenerate time.Duration) (string, error) {
+	const op = "storage.sqlite.SaveAlias"
 
 	stmt, err := s.db.Prepare("INSERT INTO url(alias, url) VALUES(?, ?)")
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *Storage) SaveURL(urlToSave string, alias string, timeToGenerate time.Du
 	}
 
 	for startTime := time.Now(); time.Since(startTime) < timeToGenerate; {
-		_, err = stmt.Exec(alias, urlToSave)
+		_, err = stmt.Exec(alias, originalURL)
 
 		exists := err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique)
 
@@ -107,8 +107,29 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	return url, nil
 }
 
-func (s *Storage) DeleteURL(alias string) error {
-	const op = "storage.sqlite.DeleteURL"
+func (s *Storage) DeleteOverdueAliases(deadline time.Time) (int64, error) {
+	const op = "storage.sqlite.DeleteOverdueAliases"
+
+	stmt, err := s.db.Prepare("DELETE FROM url WHERE created_at < ?")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	res, err := stmt.Exec(deadline)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return affected, nil
+}
+
+func (s *Storage) DeleteAlias(alias string) error {
+	const op = "storage.sqlite.DeleteAlias"
 
 	stmt, err := s.db.Prepare("DELETE FROM url WHERE alias=?")
 	if err != nil {

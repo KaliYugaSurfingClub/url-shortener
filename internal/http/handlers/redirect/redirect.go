@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/render"
 	"link_shortener/internal/http/middlewares/mwLogger"
 	"link_shortener/internal/lib/Api"
+	"link_shortener/internal/lib/sl"
 	"link_shortener/internal/storage"
 	"log/slog"
 	"net/http"
@@ -31,12 +32,12 @@ func New(getter urlGetter) http.HandlerFunc {
 
 		url, err := getter.GetURL(alias)
 		if errors.Is(err, storage.ErrURLNotFound) {
-			log.Info(storage.ErrURLNotFound.Error())
-			render.JSON(w, r, Api.Error(storage.ErrURLNotFound.Error()))
+			log.Info(err.Error())
+			render.JSON(w, r, Api.Error(err.Error()))
 			return
 		}
 		if err != nil {
-			log.Error("getting url was failed", slog.String("error", err.Error()))
+			log.Error("getting url was failed", sl.ErrorAttr(err))
 			render.JSON(w, r, Api.Error("getting url was failed"))
 			return
 		}
@@ -44,5 +45,7 @@ func New(getter urlGetter) http.HandlerFunc {
 		log.Debug("do redirect", slog.String("url", url))
 
 		http.Redirect(w, r, url, http.StatusFound)
+
+		//todo save to redirects table
 	}
 }
