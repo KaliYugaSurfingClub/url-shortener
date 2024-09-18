@@ -4,10 +4,10 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"link_shortener/internal/http/middlewares/mwLogger"
 	"link_shortener/internal/lib/Api"
 	"link_shortener/internal/lib/sl"
 	"link_shortener/internal/storage"
+	"link_shortener/internal/transport/middlewares/mwLogger"
 	"log/slog"
 	"net/http"
 )
@@ -21,12 +21,6 @@ func New(getter urlGetter) http.HandlerFunc {
 		log := mwLogger.GetCtxLog(r.Context(), "handlers.save.New")
 
 		alias := chi.URLParam(r, "alias")
-
-		if alias == "" {
-			log.Warn("empty alias")
-			render.JSON(w, r, Api.Error("empty alias"))
-			return
-		}
 
 		log = log.With(slog.String("alias", alias))
 

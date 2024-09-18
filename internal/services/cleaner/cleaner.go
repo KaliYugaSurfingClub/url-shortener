@@ -11,6 +11,8 @@ type Deleter interface {
 	DeleteOverdueAliases(deadline time.Time) (int64, error)
 }
 
+//new cleaner
+
 func Start(log *slog.Logger, deleter Deleter, lifetime time.Duration, period time.Duration) {
 	log.Info("cleaner started")
 
