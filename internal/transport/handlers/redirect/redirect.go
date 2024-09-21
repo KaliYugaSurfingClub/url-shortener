@@ -39,7 +39,5 @@ func New(getter urlGetter) http.HandlerFunc {
 		log.Debug("do redirect", slog.String("url", url))
 
 		http.Redirect(w, r, url, http.StatusFound)
-
-		//todo save to redirects table
 	}
 }

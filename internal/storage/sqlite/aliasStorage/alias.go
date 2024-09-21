@@ -1,24 +1,19 @@
-package alias
+package aliasStorage
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/mattn/go-sqlite3"
-	"link_shortener/internal/lib/random"
 	"link_shortener/internal/storage"
 	"time"
 )
 
-type Storage struct {
+type AliasStorage struct {
 	db *sql.DB
 }
 
-func randomAlias() string {
-	return random.NewRandomString(1, random.AlphaNumAlp()[0:2])
-}
-
-func New(storagePath string) (*Storage, error) {
+func New(db *sql.DB) (*AliasStorage, error) {
 	const op = "storage.sqlite.New"
 
 	db, err := sql.Open("sqlite3", storagePath)
@@ -39,10 +34,10 @@ func New(storagePath string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &Storage{db}, nil
+	return &AliasStorage{db}, nil
 }
 
-func (s *Storage) GetURL(alias string) (string, error) {
+func (s *AliasStorage) GetURL(alias string) (string, error) {
 	const op = "storage.sqlite.GetURL"
 
 	stmt, err := s.db.Prepare("SELECT original FROM url WHERE alias=?")
@@ -63,7 +58,7 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	return url, nil
 }
 
-func (s *Storage) SaveAlias(original string, alias string, timeToGenerate time.Duration) (string, error) {
+func (s *AliasStorage) SaveAlias(original string, alias string, timeToGenerate time.Duration) (string, error) {
 	const op = "storage.sqlite.SaveAlias"
 
 	stmt, err := s.db.Prepare("INSERT INTO url(original, alias) VALUES(?, ?)")
@@ -100,7 +95,7 @@ func (s *Storage) SaveAlias(original string, alias string, timeToGenerate time.D
 	return "", fmt.Errorf("%s: %w", op, storage.NotEnoughTimeToGenerate)
 }
 
-func (s *Storage) DeleteAlias(alias string) error {
+func (s *AliasStorage) DeleteAlias(alias string) error {
 	const op = "storage.sqlite.DeleteAlias"
 
 	stmt, err := s.db.Prepare("DELETE FROM url WHERE alias=?")
