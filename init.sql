@@ -3,25 +3,22 @@ CREATE TABLE IF NOT EXISTS user(
 
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    password_hash VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS link(
     id INTEGER PRIMARY KEY,
-    user_id INTEGER,
+    created_by INTEGER,
 
     original TEXT NOT NULL,
     alias VARCHAR(255) NOT NULL UNIQUE,
     clicks_count INTEGER DEFAULT 0 NOT NULL,
-    last_access TIMESTAMP,
+    last_access_time TIMESTAMP,
 
-    expire_date TIMESTAMP,
+    expiration_date TIMESTAMP,
     max_clicks INTEGER,
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user
+    FOREIGN KEY (created_by) REFERENCES user
 );
 
 CREATE TABLE IF NOT EXISTS click(
@@ -32,6 +29,5 @@ CREATE TABLE IF NOT EXISTS click(
     ip VARCHAR(45) NOT NULL,
     full_ad BOOLEAN NOT NULL,
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (link_id) REFERENCES link(id)
 );

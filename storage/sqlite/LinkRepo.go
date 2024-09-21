@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
 	"time"
 	"url_shortener/core"
@@ -16,7 +17,7 @@ type LinkRepo struct {
 	db *transaction.Queries
 }
 
-func NewLinkRepo(db *sql.DB) *LinkRepo {
+func NewLinkRepo(db *sqlx.DB) *LinkRepo {
 	return &LinkRepo{db: transaction.NewQueries(db)}
 }
 

@@ -2,18 +2,18 @@ package transaction
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 )
 
 type txKey struct{}
 
-func injectTx(ctx context.Context, tx *sql.Tx) context.Context {
+func injectTx(ctx context.Context, tx *sqlx.Tx) context.Context {
 	return context.WithValue(ctx, txKey{}, tx)
 }
 
-func extractTx(ctx context.Context) *sql.Tx {
-	if tx, ok := ctx.Value(txKey{}).(*sql.Tx); ok {
+func extractTx(ctx context.Context) *sqlx.Tx {
+	if tx, ok := ctx.Value(txKey{}).(*sqlx.Tx); ok {
 		return tx
 	}
 
@@ -21,15 +21,15 @@ func extractTx(ctx context.Context) *sql.Tx {
 }
 
 type Transactor struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewTransactor(db *sql.DB) *Transactor {
+func NewTransactor(db *sqlx.DB) *Transactor {
 	return &Transactor{db: db}
 }
 
 func (t *Transactor) WithinTx(ctx context.Context, tFunc func(ctx context.Context) error) (err error) {
-	tx, err := t.db.Begin()
+	tx, err := t.db.Beginx()
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}

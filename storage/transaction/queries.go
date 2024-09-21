@@ -3,38 +3,39 @@ package transaction
 import (
 	"context"
 	"database/sql"
+	"github.com/jmoiron/sqlx"
 )
 
 type Queries struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewQueries(db *sql.DB) *Queries {
+func NewQueries(db *sqlx.DB) *Queries {
 	return &Queries{db: db}
 }
 
-func (q *Queries) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+func (q *Queries) QueryRowContext(ctx context.Context, query string, args ...any) *sqlx.Row {
 	if tx := extractTx(ctx); tx != nil {
-		return tx.QueryRowContext(ctx, query, args...)
+		return tx.QueryRowxContext(ctx, query, args...)
 	}
 
-	return q.db.QueryRowContext(ctx, query, args...)
+	return q.db.QueryRowxContext(ctx, query, args...)
 }
 
-func (q *Queries) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+func (q *Queries) QueryContext(ctx context.Context, query string, args ...any) (*sqlx.Rows, error) {
 	if tx := extractTx(ctx); tx != nil {
-		return tx.QueryContext(ctx, query, args...)
+		return tx.QueryxContext(ctx, query, args...)
 	}
 
-	return q.db.QueryContext(ctx, query, args...)
+	return q.db.QueryxContext(ctx, query, args...)
 }
 
-func (q *Queries) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+func (q *Queries) PrepareContext(ctx context.Context, query string) (*sqlx.Stmt, error) {
 	if tx := extractTx(ctx); tx != nil {
-		return tx.PrepareContext(ctx, query)
+		return tx.PreparexContext(ctx, query)
 	}
 
-	return q.db.PrepareContext(ctx, query)
+	return q.db.PreparexContext(ctx, query)
 }
 
 func (q *Queries) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
@@ -43,4 +44,12 @@ func (q *Queries) ExecContext(ctx context.Context, query string, args ...any) (s
 	}
 
 	return q.db.ExecContext(ctx, query, args...)
+}
+
+func (q *Queries) GetContext(ctx context.Context, dest any, query string, args ...any) error {
+	if tx := extractTx(context.Background()); tx != nil {
+		return tx.GetContext(ctx, dest, query, args...)
+	}
+
+	return q.db.GetContext(ctx, dest, query, args...)
 }

@@ -25,9 +25,9 @@ type Link struct {
 type Click struct {
 	Id         int64
 	LinkId     int64
-	AccessTime time.Time
 	FullAD     bool
 	IP         string
+	AccessTime time.Time
 }
 
 type User struct {

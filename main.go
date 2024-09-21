@@ -2,26 +2,20 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"github.com/jmoiron/sqlx"
 	"log"
 	"time"
 	"url_shortener/core/model"
 	"url_shortener/storage/sqlite"
 )
 
-type fakeUpdater struct{}
-
-func (fs *fakeUpdater) UpdateLastAccess(ctx context.Context, id int, t time.Time) error {
-	return nil
-}
-
 func main() {
-	db, err := sql.Open("sqlite3", "storage.db")
+	db, err := sqlx.Open("sqlite3", "storage.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//clickStore := sqlite.NewClickRepo(db)
+	clickStore := sqlite.NewClickRepo(db)
 	linkStore := sqlite.NewLinkRepo(db)
 	//transactor := transaction.NewTransactor(db)
 
