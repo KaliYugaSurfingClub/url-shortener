@@ -4,7 +4,9 @@ import "time"
 
 var (
 	UnlimitedClicks int64 = -1
+	AnonUser        int64 = -1
 	NoExpireDate          = time.Time{}
+	NeverVisited          = time.Time{}
 )
 
 type Link struct {
@@ -13,9 +15,13 @@ type Link struct {
 	Original       string
 	Alias          string
 	ClicksCount    int64
-	LastAccess     time.Time
+	LastAccessTime time.Time
 	ExpirationDate time.Time
 	MaxClicks      int64
+}
+
+func (l *Link) CreatedByAnon() bool {
+	return l.CreatedBy == AnonUser
 }
 
 func (l *Link) IsExpired() bool {
