@@ -2,12 +2,22 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"log"
-	"time"
+	"url_shortener/core/Managers/AliasManager"
+	"url_shortener/core/Managers/RedirectManager"
 	"url_shortener/core/model"
+	"url_shortener/generator"
 	"url_shortener/storage/sqlite"
+	"url_shortener/storage/transaction"
 )
+
+type fakeReward struct{}
+
+func (t *fakeReward) TransferReward(userId int64) error {
+	return nil
+}
 
 func main() {
 	db, err := sqlx.Open("sqlite3", "storage.db")
@@ -17,29 +27,24 @@ func main() {
 
 	clickStore := sqlite.NewClickRepo(db)
 	linkStore := sqlite.NewLinkRepo(db)
-	//transactor := transaction.NewTransactor(db)
+	transactor := transaction.NewTransactor(db)
 
-	_, err = linkStore.Save(context.Background(), model.Link{
-		CreatedBy: 1, Original: "abc", Alias: "123", LastAccess: time.Now(), ExpireDate: model.NoExpireDate,
-		MaxClicks: model.UnlimitedClicks,
-	})
+	r := RedirectManager.New(linkStore, linkStore, clickStore, &fakeReward{}, transactor)
 
+	original, err := r.Process(context.Background(), "123", model.Click{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//r := redirect.New(linkStore, linkStore, clickStore, func(string) {}, transactor)
-	//if err = r.To(context.Background(), "123"); err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//aliasGenerator := generator.New([]rune("ab"), 1)
-	//
-	//s := alias.New(linkStore, aliasGenerator, 10)
-	//if al, err := s.Save(context.Background(), "123", ""); err != nil {
-	//	log.Fatal(err)
-	//} else {
-	//	fmt.Printf(al)
-	//}
+	fmt.Println(original)
+
+	aliasGenerator := generator.New([]rune("ab"), 1)
+
+	s, _ := AliasManager.New(linkStore, aliasGenerator, 10)
+	if al, err := s.Save(context.Background(), model.Link{}); err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Printf(al)
+	}
 
 }

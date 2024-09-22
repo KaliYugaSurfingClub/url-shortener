@@ -47,9 +47,17 @@ func (q *Queries) ExecContext(ctx context.Context, query string, args ...any) (s
 }
 
 func (q *Queries) GetContext(ctx context.Context, dest any, query string, args ...any) error {
-	if tx := extractTx(context.Background()); tx != nil {
+	if tx := extractTx(ctx); tx != nil {
 		return tx.GetContext(ctx, dest, query, args...)
 	}
 
 	return q.db.GetContext(ctx, dest, query, args...)
+}
+
+func (q *Queries) NamedExecContext(ctx context.Context, query string, dest any) (sql.Result, error) {
+	if tx := extractTx(ctx); tx != nil {
+		return tx.NamedExecContext(ctx, query, dest)
+	}
+
+	return q.db.NamedExecContext(ctx, query, dest)
 }

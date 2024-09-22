@@ -10,6 +10,7 @@ import (
 	"time"
 	"url_shortener/core"
 	"url_shortener/core/model"
+	"url_shortener/storage/entity"
 	"url_shortener/storage/transaction"
 )
 
@@ -24,22 +25,14 @@ func NewLinkRepo(db *sqlx.DB) *LinkRepo {
 func (r *LinkRepo) GetByAlias(ctx context.Context, alias string) (*model.Link, error) {
 	const op = "storage.sqlite.LinkRepo.GetByAlias"
 
-	stmt := `SELECT id, user_id, original, clicks_count, last_access, expire_date, max_clicks FROM link WHERE alias=?`
+	stmt := `
+		SELECT id, created_by, original, clicks_count, last_access_time, expiration_date, max_clicks 
+		FROM link WHERE alias=?
+	`
 
-	link := &model.Link{Alias: alias, ExpireDate: model.NoExpireDate, MaxClicks: model.UnlimitedClicks}
-	var expireDate sql.NullTime
-	var maxClicks sql.NullInt64
+	link := &entity.Link{Alias: alias}
 
-	err := r.db.QueryRowContext(ctx, stmt, alias).Scan(
-		&link.Id,
-		&link.CreatedBy,
-		&link.Original,
-		&link.ClicksCount,
-		&link.LastAccess,
-		&expireDate,
-		&maxClicks,
-	)
-
+	err := r.db.QueryRowContext(ctx, stmt, alias).StructScan(link)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
 	}
@@ -47,15 +40,36 @@ func (r *LinkRepo) GetByAlias(ctx context.Context, alias string) (*model.Link, e
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if expireDate.Valid {
-		link.ExpireDate = expireDate.Time
+	return link.ToModel(), nil
+}
+
+func (r *LinkRepo) Save(ctx context.Context, link model.Link) (int64, error) {
+	const op = "storage.sqlite.LinkRepo.Save"
+
+	stmt := `
+		INSERT INTO link(created_by, original, alias, expiration_date, max_clicks) 
+		VALUES (?, ?, ?, ?, ?)
+	`
+
+	var id int64
+
+	err := r.db.GetContext(ctx, &id, stmt,
+		link.CreatedBy,
+		link.Original,
+		link.Alias,
+		entity.SqlExpirationDate(link.ExpirationDate),
+		entity.SqlMaxClicks(link.MaxClicks),
+	)
+
+	var sqliteErr *sqlite3.Error
+	if errors.As(err, &sqliteErr) && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
+		return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
+	}
+	if err != nil {
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if maxClicks.Valid {
-		link.MaxClicks = maxClicks.Int64
-	}
-
-	return link, nil
+	return id, nil
 }
 
 func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
@@ -69,42 +83,4 @@ func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp tim
 	}
 
 	return nil
-}
-
-func (r *LinkRepo) Save(ctx context.Context, link model.Link) (int64, error) {
-	const op = "storage.sqlite.LinkRepo.Save"
-
-	stmt := `INSERT INTO link(user_id, original, alias, expire_date, max_clicks) VALUES (?, ?, ?, ?, ?)`
-
-	expireDate := sql.NullTime{Valid: false}
-	if link.ExpireDate != model.NoExpireDate {
-		expireDate = sql.NullTime{Valid: true, Time: link.ExpireDate}
-	}
-
-	maxClicks := sql.NullInt64{Valid: false}
-	if link.MaxClicks != model.UnlimitedClicks {
-		maxClicks = sql.NullInt64{Valid: true, Int64: link.MaxClicks}
-	}
-
-	res, err := r.db.ExecContext(ctx, stmt,
-		link.CreatedBy,
-		link.Original,
-		link.Alias,
-		expireDate,
-		maxClicks,
-	)
-
-	if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
-		return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
-	}
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, core.ErrLastInsertId)
-	}
-
-	return id, nil
 }
