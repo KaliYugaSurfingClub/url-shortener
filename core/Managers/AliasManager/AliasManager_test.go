@@ -10,40 +10,45 @@ import (
 	"url_shortener/core/model"
 )
 
-var someErr = errors.New("some error")
-
 type saver struct {
-	data      map[string]struct{}
-	beforeErr int
+	data         map[string]struct{}
+	saveNumber   int
+	errorNumbers map[int]struct{}
 }
 
 func newSaver(exists ...string) *saver {
-	mp := make(map[string]struct{}, len(exists))
+	mp := make(map[string]struct{})
 
 	for _, alias := range exists {
 		mp[alias] = struct{}{}
 	}
 
-	return &saver{data: mp, beforeErr: -1}
+	return &saver{data: mp}
 }
 
-func (s *saver) WithErrorAfter(n int) *saver {
-	s.beforeErr = n
+func (s *saver) withErrors(n ...int) *saver {
+	s.errorNumbers = make(map[int]struct{})
+
+	for _, i := range n {
+		s.errorNumbers[i] = struct{}{}
+	}
+
 	return s
 }
 
 func (s *saver) Save(_ context.Context, link model.Link) (int64, error) {
-	if s.beforeErr == 0 {
-		return 0, someErr
+	if _, ok := s.errorNumbers[s.saveNumber]; ok {
+		s.saveNumber++
+		return 0, errors.New("some error")
 	}
+
+	s.saveNumber++
 
 	if _, ok := s.data[link.Alias]; ok {
 		return 0, core.ErrAliasExists
 	}
 
 	s.data[link.Alias] = struct{}{}
-
-	s.beforeErr--
 
 	return 0, nil
 }
@@ -57,8 +62,8 @@ func newSerialGenerator(aliases ...string) *serialGenerator {
 }
 
 func (g *serialGenerator) Generate() string {
-	alias := g.aliases[len(g.aliases)-1]
-	g.aliases = g.aliases[:len(g.aliases)-1]
+	alias := g.aliases[0]
+	g.aliases = g.aliases[1:]
 
 	return alias
 }
@@ -118,7 +123,7 @@ func TestErrorWhileGeneratingSuccess(t *testing.T) {
 	willGenerated := "123"
 
 	manager, _ := New(
-		newSaver(alreadyExistAlias).WithErrorAfter(1),
+		newSaver(alreadyExistAlias).withErrors(1),
 		newSerialGenerator(alreadyExistAlias, willGenerated, willGenerated),
 		3,
 	)
@@ -133,12 +138,12 @@ func TestErrorWhileGeneratingFail(t *testing.T) {
 	willGenerated := "123"
 
 	manager, _ := New(
-		newSaver(alreadyExistAlias).WithErrorAfter(1),
+		newSaver(alreadyExistAlias).withErrors(1, 2),
 		newSerialGenerator(alreadyExistAlias, willGenerated, willGenerated),
 		3,
 	)
 
 	alias, err := manager.Save(context.Background(), model.Link{})
 	assert.Equal(t, true, errors.Is(err, core.ErrCantGenerateInTries), err)
-	assert.Equal(t, willGenerated, alias)
+	assert.Equal(t, "", alias)
 }

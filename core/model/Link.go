@@ -19,8 +19,13 @@ type Link struct {
 }
 
 func (l *Link) IsExpired() bool {
-	validTime := l.ExpirationDate == NoExpireDate || time.Until(l.ExpirationDate) > 0
-	validClicks := l.MaxClicks == UnlimitedClicks && l.MaxClicks >= l.ClicksCount
+	if l.ExpirationDate != NoExpireDate && time.Until(l.ExpirationDate) <= 0 {
+		return true
+	}
 
-	return !validTime || validClicks
+	if l.MaxClicks != UnlimitedClicks && l.MaxClicks <= l.ClicksCount {
+		return true
+	}
+
+	return false
 }
