@@ -61,3 +61,11 @@ func (q *Queries) NamedExecContext(ctx context.Context, query string, dest any) 
 
 	return q.db.NamedExecContext(ctx, query, dest)
 }
+
+func (q *Queries) SelectContext(ctx context.Context, dest any, query string, args ...any) error {
+	if tx := extractTx(ctx); tx != nil {
+		return tx.SelectContext(ctx, dest, query, args...)
+	}
+
+	return q.db.SelectContext(ctx, dest, query, args...)
+}

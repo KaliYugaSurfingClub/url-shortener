@@ -15,6 +15,7 @@ type Link struct {
 	LastAccessTime sql.NullTime  `db:"last_access_time"`
 	ExpirationDate sql.NullTime  `db:"expiration_date"`
 	MaxClicks      sql.NullInt64 `db:"max_clicks"`
+	CreatedAt      time.Time     `db:"created_at"`
 }
 
 func (l *Link) ToModel() *model.Link {
@@ -48,6 +49,7 @@ func (l *Link) ToModel() *model.Link {
 		LastAccessTime: lastAccessTime,
 		MaxClicks:      maxClicks,
 		ExpirationDate: expirationDate,
+		CreatedAt:      l.CreatedAt,
 	}
 }
 

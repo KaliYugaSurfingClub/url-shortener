@@ -1,13 +1,15 @@
-package RedirectManager
+package redirectManager
 
 import (
 	"context"
 	"errors"
 	"time"
-	"url_shortener/core"
 	"url_shortener/core/model"
 	"url_shortener/core/port"
 )
+
+//todo вот кто то получил оригиналбную ссылку но нужно ли за это давать награду пользователю
+//пересенти вознаграждние в другое место
 
 type RedirectManager struct {
 	provider   port.LinkProvider
@@ -35,13 +37,9 @@ func (r *RedirectManager) Process(ctx context.Context, alias string, click model
 	var original string
 
 	err := r.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		link, err := r.provider.GetByAlias(ctx, alias)
+		link, err := r.provider.GetActualByAlias(ctx, alias)
 		if err != nil {
 			return err
-		}
-
-		if link.IsExpired() {
-			return core.ErrExpiredLink
 		}
 
 		if err = r.updater.UpdateLastAccess(ctx, link.Id, time.Now()); err != nil {

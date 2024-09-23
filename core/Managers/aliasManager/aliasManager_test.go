@@ -1,4 +1,4 @@
-package AliasManager
+package aliasManager
 
 import (
 	"context"

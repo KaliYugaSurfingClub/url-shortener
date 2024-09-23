@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS link(
     expiration_date TIMESTAMP,
     max_clicks INTEGER,
 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (created_by) REFERENCES user
 );
 

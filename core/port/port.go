@@ -7,7 +7,7 @@ import (
 )
 
 type LinkProvider interface {
-	GetByAlias(ctx context.Context, alias string) (*model.Link, error)
+	GetActualByAlias(ctx context.Context, alias string) (*model.Link, error)
 }
 
 type LinkSaver interface {
