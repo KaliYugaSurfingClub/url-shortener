@@ -39,7 +39,9 @@ var (
 	}
 )
 
-func WithGetParams(baseQuery string, params model.GetLinksParams) string {
+//add pagination
+
+func withGetParams(baseQuery string, params model.GetLinksParams) string {
 	var query strings.Builder
 	query.WriteString(baseQuery)
 
@@ -62,6 +64,6 @@ func WithGetParams(baseQuery string, params model.GetLinksParams) string {
 	return query.String()
 }
 
-func withActualOnly(baseQuery string) string {
-	return baseQuery + isActualLinkSql
+func actualOnly(baseQuery string) string {
+	return baseQuery + " AND " + isActualLinkSql
 }

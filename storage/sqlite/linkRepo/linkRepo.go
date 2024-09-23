@@ -25,7 +25,7 @@ func New(db *sqlx.DB) *LinkRepo {
 func (r *LinkRepo) GetActualByAlias(ctx context.Context, alias string) (*model.Link, error) {
 	const op = "storage.sqlite.LinkRepo.GetActualByAlias"
 
-	query := withActualOnly(`SELECT * FROM link WHERE alias=?`)
+	query := actualOnly(`SELECT * FROM link WHERE alias=?`)
 	link := &entity.Link{}
 
 	err := r.db.QueryRowContext(ctx, query, alias).StructScan(link)
@@ -58,7 +58,7 @@ func (r *LinkRepo) GetTotalCountByUserId(ctx context.Context, userId string) (in
 func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
 	const op = "storage.sqlite.LinkRepo.GetByUserId"
 
-	query := WithGetParams(`SELECT * FROM link WHERE created_by = ?`, params)
+	query := withGetParams(`SELECT * FROM link WHERE created_by = ?`, params)
 	entities := make([]entity.Link, 0)
 
 	err := r.db.SelectContext(ctx, &entities, query, userId)
@@ -109,7 +109,7 @@ func (r *LinkRepo) Save(ctx context.Context, link model.Link) (int64, error) {
 func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
 	op := "storage.sqlite.LinkRepo.UpdateLastAccess"
 
-	query := withActualOnly(`UPDATE link SET last_access=?, clicks_count=clicks_count+1 WHERE id=?`)
+	query := actualOnly(`UPDATE link SET last_access=?, clicks_count=clicks_count+1 WHERE id=?`)
 
 	_, err := r.db.ExecContext(ctx, query, timestamp, id)
 	if err != nil {

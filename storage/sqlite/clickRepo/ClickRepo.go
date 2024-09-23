@@ -1,4 +1,4 @@
-package sqlite
+package clickRepo
 
 import (
 	"context"
@@ -12,7 +12,7 @@ type ClickRepo struct {
 	db *transaction.Queries
 }
 
-func NewClickRepo(db *sqlx.DB) *ClickRepo {
+func New(db *sqlx.DB) *ClickRepo {
 	return &ClickRepo{db: transaction.NewQueries(db)}
 }
 
