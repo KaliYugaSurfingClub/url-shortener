@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS click(
 
     access_time TIMESTAMP NOT NULL,
     ip VARCHAR(45) NOT NULL,
-    full_ad BOOLEAN NOT NULL,
+    ad_status TINYINT NOT NULL CHECK (ad_status IN (0, 1, 2)), ---started, closed, completed
 
     FOREIGN KEY (link_id) REFERENCES link(id) ON DELETE SET NULL
 );

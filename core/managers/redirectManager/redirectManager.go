@@ -3,57 +3,77 @@ package redirectManager
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"time"
 	"url_shortener/core/model"
 	"url_shortener/core/port"
 )
 
+type RedirectToADFunc = func()
+type RedirectToOriginalFunc = func(original string)
+
 type RedirectManager struct {
-	provider   port.LinkProvider
-	updater    port.LinkUpdater
-	saver      port.ClickSaver
-	transactor port.Transactor
+	linksStore         port.LinkStorage
+	clicksStore        port.ClickStorage
+	transactor         port.Transactor
+	redirectToAd       RedirectToADFunc
+	redirectToOriginal RedirectToOriginalFunc
 }
 
-func New(provider port.LinkProvider, updater port.LinkUpdater, saver port.ClickSaver, transactor port.Transactor) *RedirectManager {
+func New(linksStore port.LinkStorage, clicksStore port.ClickStorage, transactor port.Transactor) *RedirectManager {
 	return &RedirectManager{
-		provider:   provider,
-		updater:    updater,
-		saver:      saver,
-		transactor: transactor,
+		linksStore:         linksStore,
+		clicksStore:        clicksStore,
+		transactor:         transactor,
+		redirectToAd:       func() {},
+		redirectToOriginal: func(original string) { fmt.Println(original) },
 	}
 }
 
-func (r *RedirectManager) Process(ctx context.Context, alias string, click model.Click) (string, error) {
+func (r *RedirectManager) HandleClick(ctx context.Context, alias string, metadata *model.ClickMetadata) error {
 	if alias == "" {
-		return "", errors.New("alias can not be empty")
+		return errors.New("alias can not be empty")
 	}
 
-	var original string
-
-	err := r.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		link, err := r.provider.GetActiveByAlias(ctx, alias)
+	return r.transactor.WithinTx(ctx, func(ctx context.Context) error {
+		link, err := r.linksStore.GetActiveByAlias(ctx, alias)
 		if err != nil {
 			return err
 		}
 
-		if err = r.updater.UpdateLastAccess(ctx, link.Id, time.Now()); err != nil {
+		if err = r.linksStore.UpdateLastAccess(ctx, link.Id, metadata.AccessTime); err != nil {
 			return err
 		}
 
-		click.LinkId = link.Id
+		clickToSave := &model.Click{
+			LinkId:   link.Id,
+			Status:   model.AdStarted,
+			Metadata: metadata,
+		}
 
-		if _, err = r.saver.Save(ctx, click); err != nil {
+		clickId, err := r.clicksStore.Save(ctx, clickToSave)
+		if err != nil {
 			return err
 		}
 
-		original = link.Original
+		r.redirectToAd()
+
+		go r.waitForCompleteAd(link.Original, clickId)
+
 		return nil
 	})
+}
 
+func (r *RedirectManager) waitForCompleteAd(original string, clickId int64) {
+	time.Sleep(1 / 2 * time.Second)
+
+	err := r.clicksStore.UpdateStatus(context.Background(), clickId, model.AdCompleted)
 	if err != nil {
-		return "", err
+		log.Printf("Error updating click status: %v", err)
+		return
+		//todo update status to closed maybe
 	}
 
-	return original, nil
+	r.redirectToOriginal(original)
 }

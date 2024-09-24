@@ -9,12 +9,12 @@ import (
 )
 
 type AliasManager struct {
-	saver           port.LinkSaver
+	saver           port.LinkStorage
 	generator       port.AliasGenerator
 	triesToGenerate int
 }
 
-func New(saver port.LinkSaver, generator port.AliasGenerator, triesToGenerate int) (*AliasManager, error) {
+func New(saver port.LinkStorage, generator port.AliasGenerator, triesToGenerate int) (*AliasManager, error) {
 	if generator == nil {
 		return nil, errors.New("generator can't be nil")
 	}

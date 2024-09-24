@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"url_shortener/core/model"
+	"url_shortener/storage/entity"
 	"url_shortener/storage/transaction"
 )
 
@@ -16,12 +17,15 @@ func New(db *sqlx.DB) *ClickRepo {
 	return &ClickRepo{db: transaction.NewQueries(db)}
 }
 
-func (r *ClickRepo) Save(ctx context.Context, click model.Click) (int64, error) {
+func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error) {
 	const op = "storage.sqlite.ClickRepo.Save"
 
-	query := `INSERT INTO click(link_id, access_time, ip, full_ad) VALUES (?, ?, ?, ?)`
+	query := `
+		INSERT INTO click(link_id, access_time, ip, ad_status) 
+		VALUES (:link_id, :access_time, :ip, :ad_status)
+	`
 
-	res, err := r.db.ExecContext(ctx, query, click.LinkId, click.AccessTime, click.IP, click.FullAD)
+	res, err := r.db.NamedExecContext(ctx, query, entity.ClickFromModel(click))
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
@@ -29,4 +33,17 @@ func (r *ClickRepo) Save(ctx context.Context, click model.Click) (int64, error) 
 	id, _ := res.LastInsertId()
 
 	return id, nil
+}
+
+func (r *ClickRepo) UpdateStatus(ctx context.Context, clickId int64, status model.AdStatus) error {
+	const op = "storage.sqlite.ClickRepo.UpdateStatus"
+
+	query := `UPDATE click SET ad_status = ? WHERE id = ?`
+
+	_, err := r.db.ExecContext(ctx, query, status, clickId)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }

@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	"log"
+	"time"
 	"url_shortener/core/generator"
 	"url_shortener/core/managers/aliasManager"
 	"url_shortener/core/managers/redirectManager"
@@ -24,19 +24,25 @@ func main() {
 	linkStore := linkRepo.New(db)
 	transactor := transaction.NewTransactor(db)
 
-	aliasGenerator := generator.New([]rune("h"), 1)
+	aliasGenerator := generator.New([]rune("e"), 1)
 	s, _ := aliasManager.New(linkStore, aliasGenerator, 10)
 
 	if _, err := s.Save(context.Background(), &model.Link{Original: "orig"}); err != nil {
 		log.Fatal(err)
 	}
 
-	r := redirectManager.New(linkStore, linkStore, clickStore, transactor)
+	r := redirectManager.New(linkStore, clickStore, transactor)
 
-	original, err := r.Process(context.Background(), "h", model.Click{})
+	err = r.HandleClick(context.Background(), "e", &model.ClickMetadata{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(original)
+	err = r.HandleClick(context.Background(), "e", &model.ClickMetadata{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//todo sleep for test
+	time.Sleep(10 * time.Second)
 }
