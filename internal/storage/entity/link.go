@@ -2,8 +2,8 @@ package entity
 
 import (
 	"database/sql"
+	"shortener/internal/core/model"
 	"time"
-	"url_shortener/core/model"
 )
 
 type Link struct {
@@ -56,6 +56,14 @@ func ModelToLink(m *model.Link) *Link {
 		ExpirationDate:     fromNullableTime(m.ExpirationDate),
 		ClicksToExpiration: fromNullableInt64(m.ClicksToExpiration),
 	}
+}
+
+func OrderToStr(order model.Order) string {
+	if order == model.Desc {
+		return "DESC"
+	}
+
+	return "ASC"
 }
 
 func fromNullableInt64(ptr *int64) sql.NullInt64 {

@@ -3,8 +3,8 @@ package redirectManager
 import (
 	"context"
 	"errors"
-	"url_shortener/core/model"
-	"url_shortener/core/port"
+	"shortener/internal/core/model"
+	"shortener/internal/core/port"
 )
 
 type RedirectManager struct {
@@ -28,6 +28,7 @@ func New(
 	}
 }
 
+// todo return click without metadata
 func (r *RedirectManager) Start(
 	ctx context.Context, alias string, metadata *model.ClickMetadata,
 ) (original string, clickId int64, userId *int64, err error) {

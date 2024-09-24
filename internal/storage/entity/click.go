@@ -1,8 +1,8 @@
 package entity
 
 import (
+	"shortener/internal/core/model"
 	"time"
-	"url_shortener/core/model"
 )
 
 type Click struct {

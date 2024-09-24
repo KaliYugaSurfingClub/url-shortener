@@ -5,9 +5,9 @@ import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"shortener/internal/core"
+	"shortener/internal/core/model"
 	"testing"
-	"url_shortener/core"
-	"url_shortener/core/model"
 )
 
 type saver struct {

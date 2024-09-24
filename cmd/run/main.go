@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"log"
-	"url_shortener/core/generator"
-	"url_shortener/core/managers/aliasManager"
-	"url_shortener/core/managers/redirectManager"
-	"url_shortener/core/model"
-	"url_shortener/storage/sqlite/clickRepo"
-	"url_shortener/storage/sqlite/linkRepo"
-	"url_shortener/storage/transaction"
+	"shortener/internal/core/generator"
+	"shortener/internal/core/managers/aliasManager"
+	"shortener/internal/core/managers/redirectManager"
+	"shortener/internal/core/model"
+	"shortener/internal/storage/postgres/clickRepo"
+	"shortener/internal/storage/postgres/linkRepo"
+	"shortener/internal/storage/transaction"
 )
 
 type FakeUserStore struct{}
@@ -22,10 +23,14 @@ func (u *FakeUserStore) AddToBalance(ctx context.Context, id int64, payment int)
 }
 
 func main() {
-	db, err := sqlx.Open("sqlite3", "C:\\Users\\leono\\Desktop\\prog\\go\\url_shortener\\storage.db")
+	dbURL := "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
+
+	db, err := sqlx.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Unable to connect to database:", err)
 	}
+
+	defer db.Close()
 
 	clickStore := clickRepo.New(db)
 	linkStore := linkRepo.New(db)

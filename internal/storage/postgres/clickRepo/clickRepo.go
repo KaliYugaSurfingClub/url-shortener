@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"url_shortener/core/model"
-	"url_shortener/storage/entity"
-	"url_shortener/storage/transaction"
+	"shortener/internal/core/model"
+	"shortener/internal/storage/entity"
+	"shortener/internal/storage/transaction"
 )
 
 type ClickRepo struct {
