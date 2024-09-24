@@ -12,32 +12,38 @@ var (
 )
 
 type Link struct {
-	Id             int64
-	CreatedBy      int64
-	ClicksCount    int64
-	MaxClicks      int64
-	Original       string
-	Alias          string
-	LastAccessTime time.Time
-	ExpirationDate time.Time
-	CreatedAt      time.Time
+	Id                 int64
+	CreatedBy          int64
+	Original           string
+	Alias              string
+	CustomName         string
+	ClicksCount        int64
+	LastAccessTime     time.Time
+	ClicksToExpiration int64
+	ExpirationDate     time.Time
+	Archived           bool
+	CreatedAt          time.Time
 }
 
-func (l *Link) CreatedByAnon() bool {
-	return l.CreatedBy == AnonUser
-}
-
-func (l *Link) IsExpired() bool {
-	if l.ExpirationDate != NoExpireDate && time.Until(l.ExpirationDate) <= 0 {
-		return true
-	}
-
-	if l.MaxClicks != UnlimitedClicks && l.MaxClicks <= l.ClicksCount {
-		return true
-	}
-
-	return false
-}
+//func (l *Link) CreatedByAnon() bool {
+//	return l.CreatedBy == AnonUser
+//}
+//
+//func (l *Link) IsExpired() bool {
+//	if l.Archived {
+//		fa
+//	}
+//
+//	if l.ExpirationDate != NoExpireDate && time.Until(l.ExpirationDate) <= 0 {
+//		return true
+//	}
+//
+//	if l.ClicksToExpiration != UnlimitedClicks && l.ClicksToExpiration <= l.ClicksCount {
+//		return true
+//	}
+//
+//	return false
+//}
 
 type Order int8
 
@@ -46,38 +52,40 @@ const (
 	Desc
 )
 
-type TypeLink int8
+type LinkType int8
 
 const (
-	TypeAny TypeLink = iota
-	TypeActual
+	TypeAny LinkType = iota
+	TypeActive
+	TypeInactive
 	TypeExpired
+	TypeArchived
 )
 
-type ConstraintLink int8
+type SortByLink int8
 
 const (
-	ConstraintAny ConstraintLink = iota //means withMax withDate withoutAnything
-	ConstraintMaxClicks
-	ConstraintExpirationDate
+	SortByCreatedAt SortByLink = iota
+	SortByCustomName
+	SortByClicksCount
+	SortByLastAccess
+	SortByExpirationDate
+	SortByLeftClicksCount
+)
+
+type LinkConstraints int8
+
+const (
+	ConstraintAny LinkConstraints = iota
+	ConstraintClicks
+	ConstraintDate
 	ConstraintWith
-	ConstraintWithout //without any constraint
-)
-
-type ColumnLink int8
-
-const (
-	ColumnCreatedAt ColumnLink = iota
-	ColumnAlias
-	ColumnClicksCount
-	ColumnLastAccess
-	ColumnTimeToExpire
-	ColumnClicksToExpire
+	ConstraintWithout
 )
 
 type GetLinksParams struct {
-	Type        TypeLink
-	Constraints ConstraintLink
-	Column      ColumnLink
+	Type        LinkType
+	Constraints LinkConstraints
+	SortBy      SortByLink
 	Order       Order
 }

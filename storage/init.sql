@@ -1,3 +1,7 @@
+DROP TABLE user;
+DROP TABLE link;
+DROP TABLE click;
+
 CREATE TABLE IF NOT EXISTS user(
     id INTEGER PRIMARY KEY,
 
@@ -11,14 +15,17 @@ CREATE TABLE IF NOT EXISTS link(
     created_by INTEGER,
 
     original TEXT NOT NULL,
-    alias VARCHAR(255) NOT NULL UNIQUE,
+    alias VARCHAR(255) NOT NULL UNIQUE, ---todo checck constraints
+    custom_name VARCHAR(255) NOT NULL, ---todo one user can not have two same cn but different users can
     clicks_count INTEGER DEFAULT 0 NOT NULL,
     last_access_time TIMESTAMP,
 
     expiration_date TIMESTAMP,
-    max_clicks INTEGER,
+    clicks_to_expiration INTEGER,
+    archived BOOLEAN DEFAULT FALSE NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
     FOREIGN KEY (created_by) REFERENCES user
 );
 

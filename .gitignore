@@ -1,4 +1,4 @@
 storage.db
-test.db
+cmd/storageTests/test.db
 .env
 .idea

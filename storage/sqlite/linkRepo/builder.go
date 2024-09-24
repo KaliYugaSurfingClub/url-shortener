@@ -8,38 +8,50 @@ import (
 )
 
 var (
-	isActualLinkSql = `
+	isArchivedLinkSql = ` archived = TRUE `
+	isExpiredLinkSql  = `
+		((expiration_date IS NOT NULL AND expiration_date <= CURRENT_TIMESTAMP) OR
+		(clicks_to_expiration IS NOT NULL AND clicks_count >= clicks_to_expiration)) AND
+		archived = FALSE 
+	`
+	isActiveLinkSql = `
 		(expiration_date IS NULL OR expiration_date > CURRENT_TIMESTAMP) AND
-		(max_clicks IS NULL OR clicks_count < max_clicks)
+		(clicks_to_expiration IS NULL OR clicks_count < clicks_to_expiration) AND
+		archived = FALSE
+	`
+	isInactiveLinkSql = `
+		(expiration_date IS NULL OR expiration_date > CURRENT_TIMESTAMP) OR
+		(clicks_to_expiration IS NULL OR clicks_count < clicks_to_expiration) OR
+		archived = TRUE 
 	`
 
-	isExpiredLinkSql = ` NOT ( ` + isActualLinkSql + ") "
-
-	typeSql = map[model.TypeLink]string{
-		model.TypeAny:     "",
-		model.TypeActual:  isActualLinkSql,
-		model.TypeExpired: isExpiredLinkSql,
+	typeSql = map[model.LinkType]string{
+		model.TypeAny:      "",
+		model.TypeActive:   isActiveLinkSql,
+		model.TypeExpired:  isExpiredLinkSql,
+		model.TypeArchived: isArchivedLinkSql,
+		model.TypeInactive: isInactiveLinkSql,
 	}
 
-	constrainsSql = map[model.ConstraintLink]string{
-		model.ConstraintAny:            "",
-		model.ConstraintWith:           "max_clicks IS NOT NULL AND expiration_date IS NOT NULL",
-		model.ConstraintWithout:        "clicks_count IS NULL AND expiration_date IS NULL",
-		model.ConstraintMaxClicks:      "max_clicks IS NOT NULL",
-		model.ConstraintExpirationDate: "expiration_date IS NOT NULL",
+	constrainsSql = map[model.LinkConstraints]string{
+		model.ConstraintAny:     "",
+		model.ConstraintWith:    "(clicks_to_expiration IS NOT NULL OR expiration_date IS NOT NULL)",
+		model.ConstraintWithout: "clicks_count IS NULL AND expiration_date IS NULL",
+		model.ConstraintClicks:  "clicks_to_expiration IS NOT NULL",
+		model.ConstraintDate:    "expiration_date IS NOT NULL",
 	}
 
-	columnSql = map[model.ColumnLink]string{
-		model.ColumnCreatedAt:      " created_at ",
-		model.ColumnAlias:          " alias ",
-		model.ColumnClicksCount:    " clicks_count ",
-		model.ColumnLastAccess:     " last_access_time ",
-		model.ColumnClicksToExpire: " max_clicks - clicks_count ",
-		model.ColumnTimeToExpire:   " expiration_date - CURRENT_TIMESTAMP ",
+	columnSql = map[model.SortByLink]string{
+		model.SortByCreatedAt:       " created_at ",
+		model.SortByCustomName:      " custom_name ",
+		model.SortByClicksCount:     " clicks_count ",
+		model.SortByLastAccess:      " last_access_time ",
+		model.SortByLeftClicksCount: " COALESCE(clicks_to_expiration - clicks_count, -1) ",
+		model.SortByExpirationDate:  " expiration_date ",
 	}
 )
 
-//add pagination
+//todo add pagination
 
 func withGetParams(baseQuery string, params model.GetLinksParams) string {
 	var query strings.Builder
@@ -48,7 +60,7 @@ func withGetParams(baseQuery string, params model.GetLinksParams) string {
 	conditions := make([]string, 0)
 
 	conditions = append(conditions, typeSql[params.Type])
-	conditions = append(conditions, constrainsSql[model.ConstraintWith])
+	conditions = append(conditions, constrainsSql[params.Constraints])
 
 	conditions = slices.DeleteFunc(conditions, func(c string) bool { return c == "" })
 
@@ -58,12 +70,12 @@ func withGetParams(baseQuery string, params model.GetLinksParams) string {
 	}
 
 	query.WriteString(" ORDER BY ")
-	query.WriteString(columnSql[params.Column])
+	query.WriteString(columnSql[params.SortBy])
 	query.WriteString(sqlite.OrderToStr(params.Order))
 
 	return query.String()
 }
 
-func actualOnly(baseQuery string) string {
-	return baseQuery + " AND " + isActualLinkSql
+func activeOnly(baseQuery string) string {
+	return baseQuery + " AND " + isActiveLinkSql
 }

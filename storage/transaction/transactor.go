@@ -29,7 +29,7 @@ func NewTransactor(db *sqlx.DB) *Transactor {
 }
 
 func (t *Transactor) WithinTx(ctx context.Context, tFunc func(ctx context.Context) error) (err error) {
-	tx, err := t.db.Beginx()
+	tx, err := t.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
