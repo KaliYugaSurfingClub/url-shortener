@@ -73,22 +73,15 @@ func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.GetL
 	return totalCount, nil
 }
 
-func (r *LinkRepo) Save(ctx context.Context, link model.Link) (int64, error) {
+func (r *LinkRepo) Save(ctx context.Context, link *model.Link) (int64, error) {
 	const op = "storage.sqlite.LinkRepo.Save"
 
 	query := `
 		INSERT INTO link(created_by, original, alias, custom_name, expiration_date, clicks_to_expiration) 
-		VALUES (?, ?, ?, ?, ?, ?)
+		VALUES (:created_by, :original, :alias, :custom_name, :expiration_date, :clicks_to_expiration)
 	`
 
-	res, err := r.db.ExecContext(ctx, query,
-		entity.CreatedByToSql(link.CreatedBy),
-		link.Original,
-		link.Alias,
-		link.CustomName,
-		entity.ExpirationDateToSql(link.ExpirationDate),
-		entity.ClicksToExpirationToSql(link.ClicksToExpiration),
-	)
+	res, err := r.db.NamedExecContext(ctx, query, entity.ModelToLink(link))
 
 	if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
 		return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)

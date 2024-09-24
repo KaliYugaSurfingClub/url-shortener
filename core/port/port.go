@@ -11,7 +11,7 @@ type LinkProvider interface {
 }
 
 type LinkSaver interface {
-	Save(ctx context.Context, link model.Link) (int64, error)
+	Save(ctx context.Context, link *model.Link) (int64, error)
 }
 
 type LinkUpdater interface {

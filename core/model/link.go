@@ -4,23 +4,16 @@ import (
 	"time"
 )
 
-var (
-	UnlimitedClicks int64 = -1
-	AnonUser        int64 = -1
-	NoExpireDate          = time.Time{}
-	NeverVisited          = time.Time{}
-)
-
 type Link struct {
 	Id                 int64
-	CreatedBy          int64
+	CreatedBy          *int64
 	Original           string
 	Alias              string
 	CustomName         string
 	ClicksCount        int64
-	LastAccessTime     time.Time
-	ExpirationDate     time.Time
-	ClicksToExpiration int64
+	LastAccessTime     *time.Time
+	ExpirationDate     *time.Time
+	ClicksToExpiration *int64
 	Archived           bool
 	CreatedAt          time.Time
 }

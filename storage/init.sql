@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS link(
     created_by INTEGER,
 
     original TEXT NOT NULL,
-    alias VARCHAR(255) NOT NULL UNIQUE, ---todo checck constraints
-    custom_name VARCHAR(255) NOT NULL, ---todo one user can not have two same cn but different users can
+    alias VARCHAR(255) NOT NULL UNIQUE,
+    custom_name VARCHAR(255) NOT NULL,
     clicks_count INTEGER DEFAULT 0 NOT NULL,
     last_access_time TIMESTAMP,
 
@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS link(
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    FOREIGN KEY (created_by) REFERENCES user
+    FOREIGN KEY (created_by) REFERENCES user ON DELETE SET NULL,
+    UNIQUE (custom_name, created_by)
 );
 
 CREATE TABLE IF NOT EXISTS click(
@@ -37,5 +38,5 @@ CREATE TABLE IF NOT EXISTS click(
     ip VARCHAR(45) NOT NULL,
     full_ad BOOLEAN NOT NULL,
 
-    FOREIGN KEY (link_id) REFERENCES link(id)
+    FOREIGN KEY (link_id) REFERENCES link(id) ON DELETE SET NULL
 );

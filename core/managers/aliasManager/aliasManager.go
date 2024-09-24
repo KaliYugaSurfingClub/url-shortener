@@ -30,9 +30,9 @@ func New(saver port.LinkSaver, generator port.AliasGenerator, triesToGenerate in
 	}, nil
 }
 
-func (a *AliasManager) Save(ctx context.Context, link model.Link) (string, error) {
+func (a *AliasManager) Save(ctx context.Context, link *model.Link) (string, error) {
 	if link.Alias == "" {
-		return a.generateAndSave(ctx, link)
+		return a.generateAndSave(ctx, *link)
 	}
 
 	if _, err := a.saver.Save(ctx, link); err != nil {
@@ -48,7 +48,7 @@ func (a *AliasManager) generateAndSave(ctx context.Context, link model.Link) (_ 
 	for i = 0; i < a.triesToGenerate; i++ {
 		link.Alias = a.generator.Generate()
 
-		_, err = a.saver.Save(ctx, link)
+		_, err = a.saver.Save(ctx, &link)
 
 		if err == nil {
 			return link.Alias, nil

@@ -21,62 +21,74 @@ type Link struct {
 }
 
 func (l *Link) ToModel() *model.Link {
-	clicksToExpiration := model.UnlimitedClicks
-	expirationDate := model.NoExpireDate
-	createdBy := model.AnonUser
-	lastAccessTime := model.NeverVisited
-
-	if l.ClicksToExpiration.Valid {
-		clicksToExpiration = l.ClicksToExpiration.Int64
-	}
-
-	if l.ExpirationDate.Valid {
-		expirationDate = l.ExpirationDate.Time
-	}
-
-	if l.CreatedBy.Valid {
-		createdBy = l.CreatedBy.Int64
-	}
-
-	if l.LastAccessTime.Valid {
-		lastAccessTime = l.LastAccessTime.Time
-	}
-
-	return &model.Link{
+	res := &model.Link{
 		Id:                 l.Id,
-		CreatedBy:          createdBy,
 		Original:           l.Original,
 		Alias:              l.Alias,
 		CustomName:         l.CustomName,
 		ClicksCount:        l.ClicksCount,
-		LastAccessTime:     lastAccessTime,
-		ClicksToExpiration: clicksToExpiration,
-		ExpirationDate:     expirationDate,
 		Archived:           l.Archived,
 		CreatedAt:          l.CreatedAt,
+		CreatedBy:          toNullableInt64(l.CreatedBy),
+		LastAccessTime:     toNullableTime(l.LastAccessTime),
+		ExpirationDate:     toNullableTime(l.ExpirationDate),
+		ClicksToExpiration: toNullableInt64(l.ClicksToExpiration),
+	}
+
+	if res.CustomName == "" {
+		res.CustomName = res.Alias
+	}
+
+	return res
+}
+
+func ModelToLink(m *model.Link) *Link {
+	return &Link{
+		Id:                 m.Id,
+		Original:           m.Original,
+		Alias:              m.Alias,
+		CustomName:         m.CustomName,
+		ClicksCount:        m.ClicksCount,
+		Archived:           m.Archived,
+		CreatedAt:          m.CreatedAt,
+		CreatedBy:          fromNullableInt64(m.CreatedBy),
+		LastAccessTime:     fromNullableTime(m.LastAccessTime),
+		ExpirationDate:     fromNullableTime(m.ExpirationDate),
+		ClicksToExpiration: fromNullableInt64(m.ClicksToExpiration),
 	}
 }
 
-func CreatedByToSql(id int64) sql.NullInt64 {
-	if id == model.AnonUser {
-		return sql.NullInt64{Valid: false}
+func fromNullableInt64(ptr *int64) sql.NullInt64 {
+	if ptr != nil {
+		return sql.NullInt64{Int64: *ptr, Valid: true}
 	}
-
-	return sql.NullInt64{Valid: true, Int64: id}
+	return sql.NullInt64{Valid: false}
 }
 
-func ClicksToExpirationToSql(clicks int64) sql.NullInt64 {
-	if clicks == model.UnlimitedClicks {
-		return sql.NullInt64{Valid: false}
+func fromNullableString(ptr *string) sql.NullString {
+	if ptr != nil {
+		return sql.NullString{String: *ptr, Valid: true}
 	}
-
-	return sql.NullInt64{Valid: true, Int64: clicks}
+	return sql.NullString{Valid: false}
 }
 
-func ExpirationDateToSql(date time.Time) sql.NullTime {
-	if date == model.NoExpireDate {
-		return sql.NullTime{Valid: false}
+func fromNullableTime(ptr *time.Time) sql.NullTime {
+	if ptr != nil {
+		return sql.NullTime{Time: *ptr, Valid: true}
 	}
+	return sql.NullTime{Valid: false}
+}
 
-	return sql.NullTime{Valid: true, Time: date}
+func toNullableInt64(n sql.NullInt64) *int64 {
+	if n.Valid {
+		return &n.Int64
+	}
+	return nil
+}
+
+func toNullableTime(n sql.NullTime) *time.Time {
+	if n.Valid {
+		return &n.Time
+	}
+	return nil
 }

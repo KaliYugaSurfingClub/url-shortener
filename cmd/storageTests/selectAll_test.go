@@ -10,12 +10,13 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 	"url_shortener/core/model"
 	"url_shortener/storage/sqlite/linkRepo"
 )
 
 var (
-	dbPath    = "C:\\Users\\leono\\Desktop\\prog\\go\\url_shortener\\cmd\\storageTests\\test.db"
+	dbPath    = "./test.db"
 	logsPath  = "allSelectsWithParams.txt"
 	repo      *linkRepo.LinkRepo
 	creatorId int64 = 1
@@ -101,6 +102,25 @@ func printSortedFilteredLinks(name string, links []*model.Link, w io.Writer) err
 	}
 
 	for _, link := range links {
+		var leftClicks int64
+
+		if link.ClicksToExpiration != nil {
+			leftClicks = *link.ClicksToExpiration - link.ClicksCount
+		}
+
+		if link.ExpirationDate == nil {
+			link.ExpirationDate = &time.Time{}
+		}
+
+		if link.ClicksToExpiration == nil {
+			var z int64
+			link.ClicksToExpiration = &z
+		}
+
+		if link.LastAccessTime == nil {
+			link.LastAccessTime = &time.Time{}
+		}
+
 		_, err := fmt.Fprintf(w,
 			"{\n\tCustomName - %s\n"+
 				"\tClicksCount - %d\n"+
@@ -113,10 +133,10 @@ func printSortedFilteredLinks(name string, links []*model.Link, w io.Writer) err
 				"}\n",
 			link.CustomName,
 			link.ClicksCount,
-			link.ClicksToExpiration,
-			link.ClicksToExpiration-link.ClicksCount,
-			link.LastAccessTime,
-			link.ExpirationDate,
+			*link.ClicksToExpiration,
+			leftClicks,
+			*link.LastAccessTime,
+			*link.ExpirationDate,
 			link.Archived,
 			link.CreatedAt,
 		)
@@ -129,7 +149,7 @@ func printSortedFilteredLinks(name string, links []*model.Link, w io.Writer) err
 	return nil
 }
 
-func TestNewClickRepoAllCases(t *testing.T) {
+func TestSelectAll(t *testing.T) {
 	t.Logf("VISIT %q TO CHECK RESULTS OF EACH QUERY THIS TEST", logsPath)
 
 	file, _ := os.OpenFile(logsPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)

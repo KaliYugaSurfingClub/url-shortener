@@ -27,12 +27,7 @@ func main() {
 	aliasGenerator := generator.New([]rune("h"), 1)
 	s, _ := aliasManager.New(linkStore, aliasGenerator, 10)
 
-	if _, err := s.Save(context.Background(), model.Link{
-		Archived:           false,
-		Original:           "orig",
-		ExpirationDate:     model.NoExpireDate,
-		ClicksToExpiration: model.UnlimitedClicks,
-	}); err != nil {
+	if _, err := s.Save(context.Background(), &model.Link{Original: "orig"}); err != nil {
 		log.Fatal(err)
 	}
 
