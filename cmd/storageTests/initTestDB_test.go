@@ -3,13 +3,12 @@ package sqlite
 import (
 	"github.com/jaswdr/faker"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"math/rand"
+	"shortener/internal/core/model"
+	"shortener/internal/storage/entity"
 	"testing"
 	"time"
-	"url_shortener/core/model"
-	"url_shortener/storage/entity"
 )
 
 func oneFromTwo[T any](a T, b T) T {

@@ -1,10 +1,10 @@
 package linkRepo
 
 import (
+	"shortener/internal/core/model"
+	"shortener/internal/storage/entity"
 	"slices"
 	"strings"
-	"url_shortener/core/model"
-	"url_shortener/storage/sqlite"
 )
 
 var (
@@ -71,7 +71,7 @@ func withGetParams(baseQuery string, params model.GetLinksParams) string {
 
 	query.WriteString(" ORDER BY ")
 	query.WriteString(columnSql[params.SortBy])
-	query.WriteString(sqlite.OrderToStr(params.Order))
+	query.WriteString(entity.OrderToStr(params.Order))
 
 	return query.String()
 }

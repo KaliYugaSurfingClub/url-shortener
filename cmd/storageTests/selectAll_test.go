@@ -9,10 +9,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"shortener/internal/core/model"
+	"shortener/internal/storage/postgres/linkRepo"
 	"testing"
 	"time"
-	"url_shortener/core/model"
-	"url_shortener/storage/sqlite/linkRepo"
 )
 
 var (

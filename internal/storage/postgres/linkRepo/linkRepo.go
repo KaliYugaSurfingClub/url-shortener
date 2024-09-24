@@ -6,12 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"github.com/mattn/go-sqlite3"
+	"shortener/internal/core"
+	"shortener/internal/core/model"
+	"shortener/internal/storage/entity"
+	"shortener/internal/storage/transaction"
 	"time"
-	"url_shortener/core"
-	"url_shortener/core/model"
-	"url_shortener/storage/entity"
-	"url_shortener/storage/transaction"
 )
 
 type LinkRepo struct {
@@ -83,9 +82,9 @@ func (r *LinkRepo) Save(ctx context.Context, link *model.Link) (int64, error) {
 
 	res, err := r.db.NamedExecContext(ctx, query, entity.ModelToLink(link))
 
-	if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
-		return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
-	}
+	//if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
+	//	return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
+	//}
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}

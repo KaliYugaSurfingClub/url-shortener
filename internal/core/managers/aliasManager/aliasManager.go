@@ -3,9 +3,9 @@ package aliasManager
 import (
 	"context"
 	"errors"
-	"url_shortener/core"
-	"url_shortener/core/model"
-	"url_shortener/core/port"
+	"shortener/internal/core"
+	"shortener/internal/core/model"
+	"shortener/internal/core/port"
 )
 
 type AliasManager struct {
