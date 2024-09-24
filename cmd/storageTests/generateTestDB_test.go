@@ -26,47 +26,43 @@ func generateLinks(fake *faker.Faker) model.Link {
 		model.UnlimitedClicks,
 	)
 
-	clicksCount := rand.Int63()
+	var clicksCount int64
 	if clicksToExpiration != model.UnlimitedClicks {
-		clicksCount = clicksToExpiration - rand.Int63()%clicksToExpiration
+		clicksCount = int64(rand.Intn(int(clicksToExpiration) + 100))
 	}
 
-	//todo
 	return model.Link{
-		CreatedBy:  creatorId,
-		Original:   fake.Lorem().Word(),
-		Alias:      fake.Lorem().Word(),
-		CustomName: fake.Lorem().Word(),
-		ExpirationDate: oneFromTwo(
-			fake.Time().TimeBetween(time.Now(), time.Now().Add(10000*time.Hour)),
-			model.NoExpireDate,
-		),
-		ClicksCount: clicksCount,
-		LastAccessTime: oneFromTwo(
-			fake.Time().TimeBetween(time.Now(), time.Now().Add(10000*time.Hour)),
-			time.Now(),
-		),
+		CreatedBy:          creatorId,
+		Original:           fake.Lorem().Word(),
+		Alias:              fake.Lorem().Word(),
+		CustomName:         fake.Lorem().Word(),
+		ClicksCount:        clicksCount,
+		LastAccessTime:     fake.Time().TimeBetween(time.Now().Add(-1000*time.Hour), time.Now().Add(1000*time.Hour)),
 		ClicksToExpiration: clicksToExpiration,
 		Archived:           oneFromTwo(true, false),
+
+		ExpirationDate: oneFromTwo(
+			fake.Time().TimeBetween(time.Now().Add(-1000*time.Hour), time.Now().Add(1000*time.Hour)),
+			model.NoExpireDate,
+		),
 	}
 }
 
-func TestGenerate(t *testing.T) {
+func TestMain(m *testing.M) {
 	db, err := sqlx.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rand.Seed(323213)
-	fake := faker.New()
-
 	db.Exec(`DELETE FROM link`)
 
+	fake := faker.New()
 	for i := 0; i < 50; i++ {
 		time.Sleep(1 * time.Second)
 
 		link := generateLinks(&fake)
 
+		//todo
 		db.Exec(`
 			INSERT INTO link(
 				created_by, original, alias, custom_name, clicks_count, 

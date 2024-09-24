@@ -24,7 +24,7 @@ func main() {
 	linkStore := linkRepo.New(db)
 	transactor := transaction.NewTransactor(db)
 
-	aliasGenerator := generator.New([]rune("c"), 1)
+	aliasGenerator := generator.New([]rune("h"), 1)
 	s, _ := aliasManager.New(linkStore, aliasGenerator, 10)
 
 	if _, err := s.Save(context.Background(), model.Link{
@@ -38,7 +38,7 @@ func main() {
 
 	r := redirectManager.New(linkStore, linkStore, clickStore, transactor)
 
-	original, err := r.Process(context.Background(), "c", model.Click{})
+	original, err := r.Process(context.Background(), "h", model.Click{})
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -57,8 +57,6 @@ func (l *Link) ToModel() *model.Link {
 	}
 }
 
-//todo clousure
-
 func CreatedByToSql(id int64) sql.NullInt64 {
 	if id == model.AnonUser {
 		return sql.NullInt64{Valid: false}

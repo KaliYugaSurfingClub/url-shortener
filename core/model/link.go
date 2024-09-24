@@ -19,31 +19,11 @@ type Link struct {
 	CustomName         string
 	ClicksCount        int64
 	LastAccessTime     time.Time
-	ClicksToExpiration int64
 	ExpirationDate     time.Time
+	ClicksToExpiration int64
 	Archived           bool
 	CreatedAt          time.Time
 }
-
-//func (l *Link) CreatedByAnon() bool {
-//	return l.CreatedBy == AnonUser
-//}
-//
-//func (l *Link) IsExpired() bool {
-//	if l.Archived {
-//		fa
-//	}
-//
-//	if l.ExpirationDate != NoExpireDate && time.Until(l.ExpirationDate) <= 0 {
-//		return true
-//	}
-//
-//	if l.ClicksToExpiration != UnlimitedClicks && l.ClicksToExpiration <= l.ClicksCount {
-//		return true
-//	}
-//
-//	return false
-//}
 
 type Order int8
 
