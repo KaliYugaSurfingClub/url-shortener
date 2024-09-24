@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"log"
-	"time"
 	"url_shortener/core/generator"
 	"url_shortener/core/managers/aliasManager"
 	"url_shortener/core/managers/redirectManager"
@@ -13,6 +13,13 @@ import (
 	"url_shortener/storage/sqlite/linkRepo"
 	"url_shortener/storage/transaction"
 )
+
+type FakeUserStore struct{}
+
+func (u *FakeUserStore) AddToBalance(ctx context.Context, id int64, payment int) error {
+	fmt.Println("balance increasing")
+	return nil
+}
 
 func main() {
 	db, err := sqlx.Open("sqlite3", "C:\\Users\\leono\\Desktop\\prog\\go\\url_shortener\\storage.db")
@@ -24,25 +31,26 @@ func main() {
 	linkStore := linkRepo.New(db)
 	transactor := transaction.NewTransactor(db)
 
-	aliasGenerator := generator.New([]rune("e"), 1)
+	aliasGenerator := generator.New([]rune("1"), 1)
 	s, _ := aliasManager.New(linkStore, aliasGenerator, 10)
 
 	if _, err := s.Save(context.Background(), &model.Link{Original: "orig"}); err != nil {
 		log.Fatal(err)
 	}
 
-	r := redirectManager.New(linkStore, clickStore, transactor)
+	r := redirectManager.New(linkStore, clickStore, &FakeUserStore{}, transactor)
 
-	err = r.HandleClick(context.Background(), "e", &model.ClickMetadata{})
+	//create click and mark that AD was started
+	original, clickId, userId, err := r.Start(context.Background(), "1", &model.ClickMetadata{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = r.HandleClick(context.Background(), "e", &model.ClickMetadata{})
+	fmt.Println("Original: ", original)
+
+	//reward creator of link and mark that AD was watched
+	err = r.End(context.Background(), clickId, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//todo sleep for test
-	time.Sleep(10 * time.Second)
 }

@@ -17,8 +17,8 @@ type ClickStorage interface {
 	UpdateStatus(ctx context.Context, id int64, status model.AdStatus) error
 }
 
-type RewardTransfer interface {
-	TransferReward(userId int64) error
+type UserStorage interface {
+	AddToBalance(ctx context.Context, id int64, payment int) error
 }
 
 type AliasGenerator interface {
