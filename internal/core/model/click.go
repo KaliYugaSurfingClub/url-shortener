@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"net"
+	"time"
+)
 
 type AdStatus int8
 
@@ -11,7 +14,7 @@ const (
 )
 
 type ClickMetadata struct {
-	IP         string
+	IP         net.IP
 	UserAgent  string
 	AccessTime time.Time
 }
@@ -20,5 +23,5 @@ type Click struct {
 	Id       int64
 	LinkId   int64
 	Status   AdStatus
-	Metadata *ClickMetadata
+	Metadata ClickMetadata
 }

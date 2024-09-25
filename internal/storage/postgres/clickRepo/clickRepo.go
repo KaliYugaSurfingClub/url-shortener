@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"shortener/internal/core/model"
-	"shortener/internal/storage/entity"
+	"shortener/internal/storage/postgres/entity"
 	"shortener/internal/storage/transaction"
 )
 
@@ -18,11 +18,11 @@ func New(db *sqlx.DB) *ClickRepo {
 }
 
 func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error) {
-	const op = "storage.sqlite.ClickRepo.Save"
+	const op = "storage.postgres.ClickRepo.Save"
 
 	query := `
-		INSERT INTO click(link_id, access_time, ip, ad_status) 
-		VALUES (:link_id, :access_time, :ip, :ad_status)
+		INSERT INTO click(link_id, user_agent, ip, access_time, ad_status) 
+		VALUES (:link_id, :user_agent, :ip, :access_time, :ad_status)
 	`
 
 	res, err := r.db.NamedExecContext(ctx, query, entity.ClickFromModel(click))
@@ -36,7 +36,7 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 }
 
 func (r *ClickRepo) UpdateStatus(ctx context.Context, clickId int64, status model.AdStatus) error {
-	const op = "storage.sqlite.ClickRepo.UpdateStatus"
+	const op = "storage.postgres.ClickRepo.UpdateStatus"
 
 	query := `UPDATE click SET ad_status = ? WHERE id = ?`
 

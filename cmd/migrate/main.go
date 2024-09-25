@@ -12,21 +12,22 @@ import (
 func main() {
 	fmt.Println("start migrate")
 
+	//todo literal
 	dbURL := "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
 	migratePath := "file://C:/Users/leono/Desktop/prog/go/shortener/tools/migrate"
 
 	m, err := migrate.New(migratePath, dbURL)
 	if err != nil {
-		log.Fatal("migrate.New ", err)
+		log.Fatal("migrate.New: ", err)
 	}
 
 	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatal("Up ", err)
+		log.Fatal("Up: ", err)
 	}
 
 	version, dirty, err := m.Version()
 	if err != nil {
-		log.Fatal("get version ", err)
+		log.Fatal("get version: ", err)
 	}
 
 	fmt.Printf("Applied migration %d, Dirty: %t\n", version, dirty)

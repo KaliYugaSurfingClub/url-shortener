@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
-	"shortener/internal/storage/entity"
+	"shortener/internal/storage/postgres/entity"
 	"shortener/internal/storage/transaction"
 	"time"
 )
@@ -22,7 +22,7 @@ func New(db *sqlx.DB) *LinkRepo {
 }
 
 func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error) {
-	const op = "storage.sqlite.LinkRepo.GetActiveByAlias"
+	const op = "storage.postgres.LinkRepo.GetActiveByAlias"
 
 	query := activeOnly(`SELECT * FROM link WHERE alias=?`)
 
@@ -40,7 +40,7 @@ func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.L
 }
 
 func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
-	const op = "storage.sqlite.LinkRepo.GetByUserId"
+	const op = "storage.postgres.LinkRepo.GetByUserId"
 
 	query := withGetParams(`SELECT * FROM link WHERE created_by = ?`, params)
 
@@ -58,7 +58,7 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.G
 }
 
 func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.GetLinksParams) (int64, error) {
-	const op = "storage.sqlite.LinkRepo.GetCount"
+	const op = "storage.postgres.LinkRepo.GetCount"
 
 	query := withGetParams(`SELECT COUNT(*) FROM link WHERE created_by = ?`, params)
 	var totalCount int64
@@ -73,7 +73,7 @@ func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.GetL
 }
 
 func (r *LinkRepo) Save(ctx context.Context, link *model.Link) (int64, error) {
-	const op = "storage.sqlite.LinkRepo.Save"
+	const op = "storage.postgres.LinkRepo.Save"
 
 	query := `
 		INSERT INTO link(created_by, original, alias, custom_name, expiration_date, clicks_to_expiration) 
@@ -95,7 +95,7 @@ func (r *LinkRepo) Save(ctx context.Context, link *model.Link) (int64, error) {
 }
 
 func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
-	op := "storage.sqlite.LinkRepo.UpdateLastAccess"
+	op := "storage.postgres.LinkRepo.UpdateLastAccess"
 
 	query := `UPDATE link SET last_access_time=?, clicks_count=clicks_count+1 WHERE id=?`
 

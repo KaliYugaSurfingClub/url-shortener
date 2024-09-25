@@ -2,7 +2,7 @@ package linkRepo
 
 import (
 	"shortener/internal/core/model"
-	"shortener/internal/storage/entity"
+	"shortener/internal/storage/postgres/entity"
 	"slices"
 	"strings"
 )

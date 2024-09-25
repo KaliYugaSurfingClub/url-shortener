@@ -6,7 +6,7 @@ import (
 
 type Link struct {
 	Id                 int64
-	CreatedBy          *int64
+	CreatedBy          int64
 	Original           string
 	Alias              string
 	CustomName         string

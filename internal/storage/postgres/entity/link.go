@@ -8,7 +8,7 @@ import (
 
 type Link struct {
 	Id                 int64         `db:"id"`
-	CreatedBy          sql.NullInt64 `db:"created_by"`
+	CreatedBy          int64         `db:"created_by"`
 	Original           string        `db:"original"`
 	Alias              string        `db:"alias"`
 	CustomName         string        `db:"custom_name"`
@@ -29,10 +29,28 @@ func (l *Link) ToModel() *model.Link {
 		ClicksCount:        l.ClicksCount,
 		Archived:           l.Archived,
 		CreatedAt:          l.CreatedAt,
-		CreatedBy:          toNullableInt64(l.CreatedBy),
+		CreatedBy:          l.CreatedBy,
 		LastAccessTime:     toNullableTime(l.LastAccessTime),
 		ExpirationDate:     toNullableTime(l.ExpirationDate),
 		ClicksToExpiration: toNullableInt64(l.ClicksToExpiration),
+	}
+
+	return res
+}
+
+func ModelToLink(m *model.Link) *Link {
+	res := &Link{
+		Id:                 m.Id,
+		CreatedBy:          m.CreatedBy,
+		Original:           m.Original,
+		Alias:              m.Alias,
+		CustomName:         m.CustomName,
+		ClicksCount:        m.ClicksCount,
+		Archived:           m.Archived,
+		CreatedAt:          m.CreatedAt,
+		LastAccessTime:     fromNullableTime(m.LastAccessTime),
+		ExpirationDate:     fromNullableTime(m.ExpirationDate),
+		ClicksToExpiration: fromNullableInt64(m.ClicksToExpiration),
 	}
 
 	if res.CustomName == "" {
@@ -40,22 +58,6 @@ func (l *Link) ToModel() *model.Link {
 	}
 
 	return res
-}
-
-func ModelToLink(m *model.Link) *Link {
-	return &Link{
-		Id:                 m.Id,
-		Original:           m.Original,
-		Alias:              m.Alias,
-		CustomName:         m.CustomName,
-		ClicksCount:        m.ClicksCount,
-		Archived:           m.Archived,
-		CreatedAt:          m.CreatedAt,
-		CreatedBy:          fromNullableInt64(m.CreatedBy),
-		LastAccessTime:     fromNullableTime(m.LastAccessTime),
-		ExpirationDate:     fromNullableTime(m.ExpirationDate),
-		ClicksToExpiration: fromNullableInt64(m.ClicksToExpiration),
-	}
 }
 
 func OrderToStr(order model.Order) string {
