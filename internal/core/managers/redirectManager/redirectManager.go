@@ -10,7 +10,7 @@ import (
 type RedirectManager struct {
 	linksStore  port.LinkStorage
 	clicksStore port.ClickStorage
-	userStore   port.UserStorage //todo need moneyManager that are responsible for transfers
+	userStore   port.UserStorage
 	transactor  port.Transactor
 }
 
@@ -28,24 +28,16 @@ func New(
 	}
 }
 
-// todo return click without metadata
-func (r *RedirectManager) Start(
-	ctx context.Context, alias string, metadata *model.ClickMetadata,
-) (original string, clickId int64, userId *int64, err error) {
-
+func (r *RedirectManager) Start(ctx context.Context, alias string, metadata *model.ClickMetadata) (link *model.Link, clickId int64, err error) {
 	if alias == "" {
-		return "", -1, nil, errors.New("alias can not be empty")
+		return nil, -1, errors.New("alias can not be empty")
 	}
 
 	err = r.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		link, err := r.linksStore.GetActiveByAlias(ctx, alias)
+		link, err = r.linksStore.GetActiveByAlias(ctx, alias)
 		if err != nil {
 			return err
 		}
-
-		//todo store anon user in db is a good idea
-		original = link.Original
-		userId = link.CreatedBy
 
 		if err = r.linksStore.UpdateLastAccess(ctx, link.Id, metadata.AccessTime); err != nil {
 			return err
@@ -54,7 +46,7 @@ func (r *RedirectManager) Start(
 		clickToSave := &model.Click{
 			LinkId:   link.Id,
 			Status:   model.AdStarted,
-			Metadata: metadata,
+			Metadata: *metadata,
 		}
 
 		clickId, err = r.clicksStore.Save(ctx, clickToSave)
@@ -65,22 +57,18 @@ func (r *RedirectManager) Start(
 		return nil
 	})
 
-	return original, clickId, userId, err
+	return link, clickId, err
 }
 
-func (r *RedirectManager) End(ctx context.Context, clickId int64, userId *int64) error {
+func (r *RedirectManager) End(ctx context.Context, clickId int64, userId int64) error {
 	return r.transactor.WithinTx(ctx, func(ctx context.Context) error {
 		if err := r.clicksStore.UpdateStatus(ctx, clickId, model.AdCompleted); err != nil {
 			return err
 		}
 
-		//todo store anon user in db is a good idea
-		if userId == nil {
-			return nil
-		}
-
 		payment := 10
-		if err := r.userStore.AddToBalance(ctx, *userId, payment); err != nil {
+
+		if err := r.userStore.AddToBalance(ctx, userId, payment); err != nil {
 			return err
 		}
 

@@ -8,12 +8,31 @@ import (
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"testing"
+	"time"
 )
+
+var someErr = errors.New("some error")
 
 type saver struct {
 	data         map[string]struct{}
 	saveNumber   int
 	errorNumbers map[int]struct{}
+}
+
+func (s *saver) GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error) {
+	panic("implement me")
+}
+
+func (s *saver) AliasExists(ctx context.Context, alias string) (bool, error) {
+	return false, nil
+}
+
+func (s *saver) CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error) {
+	return false, nil
+}
+
+func (s *saver) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
+	panic("implement me")
 }
 
 func newSaver(exists ...string) *saver {
@@ -36,10 +55,10 @@ func (s *saver) withErrors(n ...int) *saver {
 	return s
 }
 
-func (s *saver) Save(_ context.Context, link model.Link) (int64, error) {
+func (s *saver) Save(_ context.Context, link *model.Link) (int64, error) {
 	if _, ok := s.errorNumbers[s.saveNumber]; ok {
 		s.saveNumber++
-		return 0, errors.New("some error")
+		return 0, someErr
 	}
 
 	s.saveNumber++
@@ -73,7 +92,7 @@ func TestWithAlias(t *testing.T) {
 
 	toSave := "abc"
 
-	alias, err := manager.Save(context.Background(), model.Link{Alias: toSave})
+	alias, err := manager.Save(context.Background(), &model.Link{Alias: toSave})
 	require.NoError(t, err)
 	assert.Equal(t, toSave, alias)
 }
@@ -83,7 +102,7 @@ func TestFirstNoAlias(t *testing.T) {
 
 	manager, _ := New(newSaver(), newSerialGenerator(willGenerated), 3)
 
-	alias, err := manager.Save(context.Background(), model.Link{})
+	alias, err := manager.Save(context.Background(), &model.Link{})
 	require.NoError(t, err)
 	assert.Equal(t, willGenerated, alias)
 }
@@ -98,7 +117,7 @@ func TestGenerateAlreadyExistsAliasSuccess(t *testing.T) {
 		3,
 	)
 
-	alias, err := manager.Save(context.Background(), model.Link{})
+	alias, err := manager.Save(context.Background(), &model.Link{})
 
 	require.NoError(t, err)
 	assert.Equal(t, willGenerated, alias)
@@ -113,8 +132,8 @@ func TestCannotGenerateAliasInTries(t *testing.T) {
 		3,
 	)
 
-	alias, err := manager.Save(context.Background(), model.Link{})
-	assert.Equal(t, true, errors.Is(err, core.ErrCantGenerateInTries), err)
+	alias, err := manager.Save(context.Background(), &model.Link{})
+	assert.Equal(t, true, errors.Is(err, core.ErrCantGenerateInTries) && errors.Is(err, core.ErrAliasExists), err)
 	assert.Equal(t, "", alias)
 }
 
@@ -128,7 +147,7 @@ func TestErrorWhileGeneratingSuccess(t *testing.T) {
 		3,
 	)
 
-	alias, err := manager.Save(context.Background(), model.Link{})
+	alias, err := manager.Save(context.Background(), &model.Link{})
 	require.NoError(t, err)
 	assert.Equal(t, willGenerated, alias)
 }
@@ -143,7 +162,12 @@ func TestErrorWhileGeneratingFail(t *testing.T) {
 		3,
 	)
 
-	alias, err := manager.Save(context.Background(), model.Link{})
-	assert.Equal(t, true, errors.Is(err, core.ErrCantGenerateInTries), err)
+	alias, err := manager.Save(context.Background(), &model.Link{})
+	assert.Equal(t, true,
+		errors.Is(err, core.ErrCantGenerateInTries) &&
+			errors.Is(err, someErr) &&
+			errors.Is(err, core.ErrAliasExists),
+		err,
+	)
 	assert.Equal(t, "", alias)
 }

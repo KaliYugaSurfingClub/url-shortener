@@ -9,12 +9,12 @@ import (
 )
 
 type AliasManager struct {
-	saver           port.LinkStorage
+	store           port.LinkStorage
 	generator       port.AliasGenerator
 	triesToGenerate int
 }
 
-func New(saver port.LinkStorage, generator port.AliasGenerator, triesToGenerate int) (*AliasManager, error) {
+func New(store port.LinkStorage, generator port.AliasGenerator, triesToGenerate int) (*AliasManager, error) {
 	if generator == nil {
 		return nil, errors.New("generator can't be nil")
 	}
@@ -24,43 +24,63 @@ func New(saver port.LinkStorage, generator port.AliasGenerator, triesToGenerate 
 	}
 
 	return &AliasManager{
-		saver,
+		store,
 		generator,
 		triesToGenerate,
 	}, nil
 }
 
 func (a *AliasManager) Save(ctx context.Context, link *model.Link) (string, error) {
+	exists, err := a.store.CustomNameExists(ctx, link.CustomName, link.CreatedBy)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return "", core.ErrCustomNameExists
+	}
+
 	if link.Alias == "" {
 		return a.generateAndSave(ctx, *link)
 	}
 
-	if _, err := a.saver.Save(ctx, link); err != nil {
+	exists, err = a.store.AliasExists(ctx, link.Alias)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return "", core.ErrAliasExists
+	}
+
+	if _, err = a.store.Save(ctx, link); err != nil {
 		return "", err
 	}
 
 	return link.Alias, nil
 }
 
-func (a *AliasManager) generateAndSave(ctx context.Context, link model.Link) (_ string, err error) {
+func (a *AliasManager) generateAndSave(ctx context.Context, link model.Link) (string, error) {
 	var i int
+
+	errs := make([]error, a.triesToGenerate)
 
 	for i = 0; i < a.triesToGenerate; i++ {
 		link.Alias = a.generator.Generate()
 
-		_, err = a.saver.Save(ctx, &link)
+		_, err := a.store.Save(ctx, &link)
 
 		if err == nil {
 			return link.Alias, nil
+		} else {
+			errs = append(errs, err)
 		}
 	}
 
 	if i == a.triesToGenerate {
-		return "", core.ErrCantGenerateInTries
+		errs = append(errs, core.ErrCantGenerateInTries)
 	}
 
-	if err != nil {
-		return "", err
+	if len(errs) != 0 {
+		return "", errors.Join(errs...)
 	}
 
 	return link.Alias, nil

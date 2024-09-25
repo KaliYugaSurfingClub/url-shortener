@@ -38,6 +38,21 @@ func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.L
 	return link, nil
 }
 
+func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
+	const op = "storage.postgres.LinkRepo.GetCount"
+
+	query := build(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params).String()
+
+	var totalCount int64
+	err := r.db.QueryRow(ctx, query, userId).Scan(&totalCount)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return totalCount, nil
+}
+
 func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
 	const op = "storage.postgres.LinkRepo.GetByUserId"
 
@@ -66,21 +81,6 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.G
 	return links, nil
 }
 
-func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
-	const op = "storage.postgres.LinkRepo.GetCount"
-
-	query := build(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params).String()
-
-	var totalCount int64
-	err := r.db.QueryRow(ctx, query, userId).Scan(&totalCount)
-
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return totalCount, nil
-}
-
 func (r *LinkRepo) AliasExists(ctx context.Context, alias string) (bool, error) {
 	const op = "storage.postgres.LinkRepo.AliasExists"
 
@@ -96,13 +96,13 @@ func (r *LinkRepo) AliasExists(ctx context.Context, alias string) (bool, error) 
 	return exists, nil
 }
 
-func (r *LinkRepo) CustomNameExists(ctx context.Context, userId int64) (bool, error) {
+func (r *LinkRepo) CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error) {
 	const op = "storage.postgres.LinkRepo.CustomNameExists"
 
-	query := `SELECT EXISTS (SELECT 1 FROM link WHERE alias=$1 AND created_by = $2)`
+	query := `SELECT EXISTS (SELECT 1 FROM link WHERE custom_name=$1 AND created_by = $2)`
 
 	var exists bool
-	err := r.db.QueryRow(ctx, query, userId, userId).Scan(&exists)
+	err := r.db.QueryRow(ctx, query, customName, userId).Scan(&exists)
 
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)

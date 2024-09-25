@@ -2,19 +2,21 @@ package port
 
 import (
 	"context"
-	model2 "shortener/internal/core/model"
+	"shortener/internal/core/model"
 	"time"
 )
 
 type LinkStorage interface {
-	GetActiveByAlias(ctx context.Context, alias string) (*model2.Link, error)
-	Save(ctx context.Context, link *model2.Link) (int64, error)
+	GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error)
+	AliasExists(ctx context.Context, alias string) (bool, error)
+	CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error)
+	Save(ctx context.Context, link *model.Link) (int64, error)
 	UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error
 }
 
 type ClickStorage interface {
-	Save(ctx context.Context, click *model2.Click) (int64, error)
-	UpdateStatus(ctx context.Context, id int64, status model2.AdStatus) error
+	Save(ctx context.Context, click *model.Click) (int64, error)
+	UpdateStatus(ctx context.Context, id int64, status model.AdStatus) error
 }
 
 type UserStorage interface {
