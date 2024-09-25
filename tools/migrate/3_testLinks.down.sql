@@ -1,1 +1,0 @@
-DELETE FROM link WHERE id IN (1, 2)

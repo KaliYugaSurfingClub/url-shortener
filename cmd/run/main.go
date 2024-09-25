@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/lib/pq"
 	"shortener/internal/core/generator"
 	"shortener/internal/core/managers/aliasManager"
 	"shortener/internal/core/managers/redirectManager"
@@ -39,60 +38,7 @@ func main() {
 	defer db.Close()
 
 	clickStore := clickRepo.New(db)
-
-	//id, err := clickStore.Save(context.Background(), &model.Click{LinkId: 1})
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//
-	//fmt.Println(id)
-	//
-	//err = clickStore.UpdateStatus(context.Background(), id, model.AdClosed)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-
 	linkStore := linkRepo.New(db)
-
-	//link := &model.Link{
-	//	CreatedBy: 1,
-	//	Original:  "abcr",
-	//	Alias:     "dsaads",
-	//}
-	//
-	//id, err = linkStore.Save(context.Background(), link)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//
-	//fmt.Println(id)
-	//
-	//link, err = linkStore.GetActiveByAlias(context.Background(), "abcd")
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//
-	//fmt.Println(link)
-	//
-	//links, err := linkStore.GetByUserId(context.Background(), 1, model.GetLinksParams{})
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//
-	//fmt.Println(links)
-	//
-	//count, err := linkStore.GetCount(context.Background(), 1, model.LinkFilter{})
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-	//
-	//fmt.Println(count)
-	//
-	//err = linkStore.UpdateLastAccess(context.Background(), id, time.Now())
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
-
 	transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("1"), 1)
