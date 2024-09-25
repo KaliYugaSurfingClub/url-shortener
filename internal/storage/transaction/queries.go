@@ -2,70 +2,39 @@ package transaction
 
 import (
 	"context"
-	"database/sql"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Queries struct {
-	db *sqlx.DB
+	db *pgxpool.Pool
 }
 
-func NewQueries(db *sqlx.DB) *Queries {
-	return &Queries{db: db}
+func NewQueries(db *pgxpool.Pool) Queries {
+	return Queries{db: db}
 }
 
-func (q *Queries) QueryRowContext(ctx context.Context, query string, args ...any) *sqlx.Row {
+func (q *Queries) QueryRow(ctx context.Context, query string, args ...any) pgx.Row {
 	if tx := extractTx(ctx); tx != nil {
-		return tx.QueryRowxContext(ctx, query, args...)
+		return tx.QueryRow(ctx, query, args...)
 	}
 
-	return q.db.QueryRowxContext(ctx, query, args...)
+	return q.db.QueryRow(ctx, query, args...)
 }
 
-func (q *Queries) QueryContext(ctx context.Context, query string, args ...any) (*sqlx.Rows, error) {
+func (q *Queries) Query(ctx context.Context, query string, args ...any) (pgx.Rows, error) {
 	if tx := extractTx(ctx); tx != nil {
-		return tx.QueryxContext(ctx, query, args...)
+		return tx.Query(ctx, query, args...)
 	}
 
-	return q.db.QueryxContext(ctx, query, args...)
+	return q.db.Query(ctx, query, args...)
 }
 
-func (q *Queries) PrepareContext(ctx context.Context, query string) (*sqlx.Stmt, error) {
+func (q *Queries) Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error) {
 	if tx := extractTx(ctx); tx != nil {
-		return tx.PreparexContext(ctx, query)
+		return tx.Exec(ctx, query, args...)
 	}
 
-	return q.db.PreparexContext(ctx, query)
-}
-
-func (q *Queries) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	if tx := extractTx(ctx); tx != nil {
-		return tx.ExecContext(ctx, query, args...)
-	}
-
-	return q.db.ExecContext(ctx, query, args...)
-}
-
-func (q *Queries) GetContext(ctx context.Context, dest any, query string, args ...any) error {
-	if tx := extractTx(ctx); tx != nil {
-		return tx.GetContext(ctx, dest, query, args...)
-	}
-
-	return q.db.GetContext(ctx, dest, query, args...)
-}
-
-func (q *Queries) NamedExecContext(ctx context.Context, query string, dest any) (sql.Result, error) {
-	if tx := extractTx(ctx); tx != nil {
-		return tx.NamedExecContext(ctx, query, dest)
-	}
-
-	return q.db.NamedExecContext(ctx, query, dest)
-}
-
-func (q *Queries) SelectContext(ctx context.Context, dest any, query string, args ...any) error {
-	if tx := extractTx(ctx); tx != nil {
-		return tx.SelectContext(ctx, dest, query, args...)
-	}
-
-	return q.db.SelectContext(ctx, dest, query, args...)
+	return q.db.Exec(ctx, query, args...)
 }

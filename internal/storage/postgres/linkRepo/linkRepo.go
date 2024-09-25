@@ -2,10 +2,10 @@ package linkRepo
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres/entity"
@@ -14,22 +14,28 @@ import (
 )
 
 type LinkRepo struct {
-	db *transaction.Queries
+	db transaction.Queries
 }
 
-func New(db *sqlx.DB) *LinkRepo {
+func New(db *pgxpool.Pool) *LinkRepo {
 	return &LinkRepo{db: transaction.NewQueries(db)}
 }
 
 func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error) {
 	const op = "storage.postgres.LinkRepo.GetActiveByAlias"
 
-	query := activeOnly(`SELECT * FROM link WHERE alias=?`)
+	query := activeOnly(`SELECT * FROM link WHERE alias=$1`)
+
+	//todo delete entities and impl scanClickFrom
 
 	link := &entity.Link{}
-	err := r.db.QueryRowContext(ctx, query, alias).StructScan(link)
+	err := r.db.QueryRow(ctx, query, alias).Scan(
+		&link.Id, &link.CreatedBy, &link.Original, &link.Alias, &link.CustomName,
+		&link.ClicksCount, &link.LastAccessTime, &link.ExpirationDate,
+		&link.ClicksToExpiration, &link.Archived, &link.CreatedAt,
+	)
 
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
 	}
 	if err != nil {
@@ -40,69 +46,70 @@ func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.L
 }
 
 func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
-	const op = "storage.postgres.LinkRepo.GetByUserId"
-
-	query := withGetParams(`SELECT * FROM link WHERE created_by = ?`, params)
-
-	entities := make([]entity.Link, 0)
-	if err := r.db.SelectContext(ctx, &entities, query, userId); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	links := make([]*model.Link, 0, len(entities))
-	for _, ent := range entities {
-		links = append(links, ent.ToModel())
-	}
-
-	return links, nil
+	//const op = "storage.postgres.LinkRepo.GetByUserId"
+	//
+	//query := withGetParams(`SELECT * FROM link WHERE created_by = ?`, params)
+	//
+	//entities := make([]entity.Link, 0)
+	//if err := r.db.SelectContext(ctx, &entities, query, userId); err != nil {
+	//	return nil, fmt.Errorf("%s: %w", op, err)
+	//}
+	//
+	//links := make([]*model.Link, 0, len(entities))
+	//for _, ent := range entities {
+	//	links = append(links, ent.ToModel())
+	//}
+	//
+	//return links, nil
+	return nil, nil
 }
 
 func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.GetLinksParams) (int64, error) {
-	const op = "storage.postgres.LinkRepo.GetCount"
-
-	query := withGetParams(`SELECT COUNT(*) FROM link WHERE created_by = ?`, params)
+	//const op = "storage.postgres.LinkRepo.GetCount"
+	//
+	//query := withGetParams(`SELECT COUNT(*) FROM link WHERE created_by = ?`, params)
 	var totalCount int64
-
-	err := r.db.GetContext(ctx, &totalCount, query, userId)
-
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
+	//
+	//err := r.db.GetContext(ctx, &totalCount, query, userId)
+	//
+	//if err != nil {
+	//	return 0, fmt.Errorf("%s: %w", op, err)
+	//}
+	//
 	return totalCount, nil
 }
 
 func (r *LinkRepo) Save(ctx context.Context, link *model.Link) (int64, error) {
-	const op = "storage.postgres.LinkRepo.Save"
-
-	query := `
-		INSERT INTO link(created_by, original, alias, custom_name, expiration_date, clicks_to_expiration) 
-		VALUES (:created_by, :original, :alias, :custom_name, :expiration_date, :clicks_to_expiration)
-	`
-
-	res, err := r.db.NamedExecContext(ctx, query, entity.ModelToLink(link))
-
-	//if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
-	//	return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
+	//const op = "storage.postgres.LinkRepo.Save"
+	//
+	//query := `
+	//	INSERT INTO link(created_by, original, alias, custom_name, expiration_date, clicks_to_expiration)
+	//	VALUES (:created_by, :original, :alias, :custom_name, :expiration_date, :clicks_to_expiration)
+	//`
+	//
+	//res, err := r.db.NamedExecContext(ctx, query, entity.ModelToLink(link))
+	//
+	////if err != nil && errors.Is(err.(sqlite3.Error).ExtendedCode, sqlite3.ErrConstraintUnique) {
+	////	return -1, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
+	////}
+	//if err != nil {
+	//	return -1, fmt.Errorf("%s: %w", op, err)
 	//}
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
-	}
+	//
+	//id, _ := res.LastInsertId()
 
-	id, _ := res.LastInsertId()
-
-	return id, nil
+	return 0, nil
 }
 
 func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
-	op := "storage.postgres.LinkRepo.UpdateLastAccess"
-
-	query := `UPDATE link SET last_access_time=?, clicks_count=clicks_count+1 WHERE id=?`
-
-	_, err := r.db.ExecContext(ctx, query, timestamp, id)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
+	//op := "storage.postgres.LinkRepo.UpdateLastAccess"
+	//
+	//query := `UPDATE link SET last_access_time=?, clicks_count=clicks_count+1 WHERE id=?`
+	//
+	//_, err := r.db.ExecContext(ctx, query, timestamp, id)
+	//if err != nil {
+	//	return fmt.Errorf("%s: %w", op, err)
+	//}
 
 	return nil
 }

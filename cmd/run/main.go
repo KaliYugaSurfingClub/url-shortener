@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"log"
-	"shortener/internal/core/model"
-	"shortener/internal/storage/postgres/clickRepo"
+	"shortener/internal/storage/postgres/linkRepo"
 	"time"
 )
 
@@ -22,19 +21,40 @@ func main() {
 	//todo literal
 	dbURL := "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
 
-	db, err := sqlx.Open("postgres", dbURL)
+	poolCfg, err := pgxpool.ParseConfig(dbURL)
 	if err != nil {
-		log.Fatal("Unable to connect to database:", err)
+		log.Fatal("Unable to parse DATABASE_URL: ", err)
+	}
+
+	db, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
+	if err != nil {
+		log.Fatal("Unable to create connection pool: ", err)
 	}
 
 	defer db.Close()
 
-	clickStore := clickRepo.New(db)
+	//clickStore := clickRepo.New(db)
+	//
+	//id, err := clickStore.Save(context.Background(), &model.Click{LinkId: 1})
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//fmt.Println(id)
+	//
+	//err = clickStore.UpdateStatus(context.Background(), id, model.AdClosed)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
-	_, err = clickStore.Save(context.Background(), &model.Click{LinkId: 1})
+	linkStore := linkRepo.New(db)
+
+	link, err := linkStore.GetActiveByAlias(context.Background(), "abcd")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(link)
 
 	//linkStore := linkRepo.New(db)
 	//transactor := transaction.NewTransactor(db)

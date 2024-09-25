@@ -3,17 +3,17 @@ package clickRepo
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres/entity"
 	"shortener/internal/storage/transaction"
 )
 
 type ClickRepo struct {
-	db *transaction.Queries
+	db transaction.Queries
 }
 
-func New(db *sqlx.DB) *ClickRepo {
+func New(db *pgxpool.Pool) *ClickRepo {
 	return &ClickRepo{db: transaction.NewQueries(db)}
 }
 
@@ -22,15 +22,17 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 
 	query := `
 		INSERT INTO click(link_id, user_agent, ip, access_time, ad_status) 
-		VALUES (:link_id, :user_agent, :ip, :access_time, :ad_status)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
 	`
 
-	res, err := r.db.NamedExecContext(ctx, query, entity.ClickFromModel(click))
+	var id int64
+	ent := entity.ClickFromModel(click)
+
+	err := r.db.QueryRow(ctx, query, ent.LinkId, ent.UserAgent, ent.IP, ent.AccessTime, ent.Status).Scan(&id)
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
-
-	id, _ := res.LastInsertId()
 
 	return id, nil
 }
@@ -38,9 +40,9 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 func (r *ClickRepo) UpdateStatus(ctx context.Context, clickId int64, status model.AdStatus) error {
 	const op = "storage.postgres.ClickRepo.UpdateStatus"
 
-	query := `UPDATE click SET ad_status = ? WHERE id = ?`
+	query := `UPDATE click SET ad_status = $2 WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, status, clickId)
+	_, err := r.db.Exec(ctx, query, clickId, status)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
