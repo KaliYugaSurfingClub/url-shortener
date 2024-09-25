@@ -56,9 +56,17 @@ const (
 	ConstraintWithout
 )
 
-type GetLinksParams struct {
+type LinkFilter struct {
 	Type        LinkType
 	Constraints LinkConstraints
-	SortBy      SortByLink
-	Order       Order
+}
+
+type LinkSort struct {
+	SortBy SortByLink
+	Order  Order
+}
+
+type GetLinksParams struct {
+	Filter LinkFilter
+	Sort   LinkSort
 }

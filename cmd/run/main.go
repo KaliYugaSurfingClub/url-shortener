@@ -6,6 +6,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"log"
+	"shortener/internal/core/model"
+	"shortener/internal/storage/postgres/clickRepo"
 	"shortener/internal/storage/postgres/linkRepo"
 	"time"
 )
@@ -33,28 +35,60 @@ func main() {
 
 	defer db.Close()
 
-	//clickStore := clickRepo.New(db)
-	//
-	//id, err := clickStore.Save(context.Background(), &model.Click{LinkId: 1})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//fmt.Println(id)
-	//
-	//err = clickStore.UpdateStatus(context.Background(), id, model.AdClosed)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	clickStore := clickRepo.New(db)
+
+	id, err := clickStore.Save(context.Background(), &model.Click{LinkId: 1})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(id)
+
+	err = clickStore.UpdateStatus(context.Background(), id, model.AdClosed)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	linkStore := linkRepo.New(db)
 
-	link, err := linkStore.GetActiveByAlias(context.Background(), "abcd")
+	link := &model.Link{
+		CreatedBy: 1,
+		Original:  "abcr",
+		Alias:     "dsaads",
+	}
+
+	id, err = linkStore.Save(context.Background(), link)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(id)
+
+	link, err = linkStore.GetActiveByAlias(context.Background(), "abcd")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println(link)
+
+	links, err := linkStore.GetByUserId(context.Background(), 1, model.GetLinksParams{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(links)
+
+	count, err := linkStore.GetCount(context.Background(), 1, model.LinkFilter{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(count)
+
+	err = linkStore.UpdateLastAccess(context.Background(), id, time.Now())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//linkStore := linkRepo.New(db)
 	//transactor := transaction.NewTransactor(db)

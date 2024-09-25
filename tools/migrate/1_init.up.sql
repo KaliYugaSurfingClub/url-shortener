@@ -1,3 +1,9 @@
+BEGIN;
+
+DROP TABLE IF EXISTS click;
+DROP TABLE IF EXISTS link;
+DROP TABLE IF EXISTS person;
+
 CREATE TABLE person(
     id BIGSERIAL PRIMARY KEY,
 
@@ -39,3 +45,5 @@ CREATE TABLE click(
 
     ad_status SMALLINT NOT NULL CHECK (ad_status IN (0, 1, 2))
 );
+
+COMMIT;

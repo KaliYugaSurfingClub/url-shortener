@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core/model"
-	"shortener/internal/storage/postgres/entity"
 	"shortener/internal/storage/transaction"
 )
 
@@ -27,9 +26,12 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 	`
 
 	var id int64
-	ent := entity.ClickFromModel(click)
 
-	err := r.db.QueryRow(ctx, query, ent.LinkId, ent.UserAgent, ent.IP, ent.AccessTime, ent.Status).Scan(&id)
+	err := r.db.QueryRow(
+		ctx, query, click.LinkId, click.Metadata.UserAgent,
+		click.Metadata.IP, click.Metadata.AccessTime, click.Status,
+	).Scan(&id)
+
 	if err != nil {
 		return -1, fmt.Errorf("%s: %w", op, err)
 	}
@@ -43,6 +45,7 @@ func (r *ClickRepo) UpdateStatus(ctx context.Context, clickId int64, status mode
 	query := `UPDATE click SET ad_status = $2 WHERE id = $1`
 
 	_, err := r.db.Exec(ctx, query, clickId, status)
+
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

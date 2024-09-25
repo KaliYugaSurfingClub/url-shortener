@@ -2,10 +2,17 @@ package linkRepo
 
 import (
 	"shortener/internal/core/model"
-	"shortener/internal/storage/postgres/entity"
 	"slices"
 	"strings"
 )
+
+func OrderToStr(order model.Order) string {
+	if order == model.Desc {
+		return "DESC"
+	}
+
+	return "ASC"
+}
 
 var (
 	isArchivedLinkSql = ` archived = TRUE `
@@ -41,7 +48,7 @@ var (
 		model.ConstraintDate:    "expiration_date IS NOT NULL",
 	}
 
-	columnSql = map[model.SortByLink]string{
+	sortBy = map[model.SortByLink]string{
 		model.SortByCreatedAt:       " created_at ",
 		model.SortByCustomName:      " custom_name ",
 		model.SortByClicksCount:     " clicks_count ",
@@ -51,12 +58,18 @@ var (
 	}
 )
 
-//todo add pagination
+type builder struct {
+	query strings.Builder
+}
 
-func withGetParams(baseQuery string, params model.GetLinksParams) string {
-	var query strings.Builder
-	query.WriteString(baseQuery)
+func build(baseQuery string) *builder {
+	res := new(builder)
+	res.query.WriteString(baseQuery)
 
+	return res
+}
+
+func (b *builder) Filter(params model.LinkFilter) *builder {
 	conditions := make([]string, 0)
 
 	conditions = append(conditions, typeSql[params.Type])
@@ -65,15 +78,23 @@ func withGetParams(baseQuery string, params model.GetLinksParams) string {
 	conditions = slices.DeleteFunc(conditions, func(c string) bool { return c == "" })
 
 	if len(conditions) > 0 {
-		query.WriteString(" AND ")
-		query.WriteString(strings.Join(conditions, " AND "))
+		b.query.WriteString(" AND ")
+		b.query.WriteString(strings.Join(conditions, " AND "))
 	}
 
-	query.WriteString(" ORDER BY ")
-	query.WriteString(columnSql[params.SortBy])
-	query.WriteString(entity.OrderToStr(params.Order))
+	return b
+}
 
-	return query.String()
+func (b *builder) Sort(params model.LinkSort) *builder {
+	b.query.WriteString(" ORDER BY ")
+	b.query.WriteString(sortBy[params.SortBy])
+	b.query.WriteString(OrderToStr(params.Order))
+
+	return b
+}
+
+func (b *builder) String() string {
+	return b.query.String()
 }
 
 func activeOnly(baseQuery string) string {
