@@ -134,6 +134,7 @@ func TestCannotGenerateAliasInTries(t *testing.T) {
 
 	alias, err := manager.Save(context.Background(), &model.Link{})
 	assert.Equal(t, true, errors.Is(err, core.ErrCantGenerateInTries) && errors.Is(err, core.ErrAliasExists), err)
+	t.Log(err)
 	assert.Equal(t, "", alias)
 }
 

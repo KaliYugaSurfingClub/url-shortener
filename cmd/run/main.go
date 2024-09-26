@@ -4,14 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"shortener/internal/core/generator"
-	"shortener/internal/core/managers/aliasManager"
-	"shortener/internal/core/managers/redirectManager"
-	"shortener/internal/core/model"
-	"shortener/internal/storage/postgres/clickRepo"
-	"shortener/internal/storage/postgres/linkRepo"
-	"shortener/internal/storage/transaction"
-	"time"
+	"log/slog"
+	"os"
+	"shortener/internal/transport/rest"
 )
 
 type FakeUserStore struct{}
@@ -37,32 +32,14 @@ func main() {
 
 	defer db.Close()
 
-	clickStore := clickRepo.New(db)
-	linkStore := linkRepo.New(db)
-	transactor := transaction.NewTransactor(db)
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	aliasGenerator := generator.New([]rune("1"), 1)
-	s, _ := aliasManager.New(linkStore, aliasGenerator, 10)
+	server := rest.New(log)
 
-	if _, err := s.Save(context.Background(), &model.Link{Original: "orig", CreatedBy: 1}); err != nil {
-		fmt.Println(err)
+	log.Info("123")
+
+	if err := server.ListenAndServe(); err != nil {
+		log.Error("Unable to start server: ", err)
+		os.Exit(1) //todo
 	}
-
-	r := redirectManager.New(linkStore, clickStore, &FakeUserStore{}, transactor)
-
-	//create click and mark that AD was started
-	link, clickId, err := r.Start(context.Background(), "1", &model.ClickMetadata{})
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println("Original: ", link.Original)
-
-	//reward creator of link and mark that AD was watched
-	err = r.End(context.Background(), clickId, link.CreatedBy)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	time.Sleep(3 * time.Second)
 }

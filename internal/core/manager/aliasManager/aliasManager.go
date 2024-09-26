@@ -3,9 +3,11 @@ package aliasManager
 import (
 	"context"
 	"errors"
+	"fmt"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
+	"shortener/internal/utils"
 )
 
 type AliasManager struct {
@@ -30,25 +32,20 @@ func New(store port.LinkStorage, generator port.AliasGenerator, triesToGenerate 
 	}, nil
 }
 
-func (a *AliasManager) Save(ctx context.Context, link *model.Link) (string, error) {
-	exists, err := a.store.CustomNameExists(ctx, link.CustomName, link.CreatedBy)
+func (a *AliasManager) Save(ctx context.Context, link *model.Link) (_ string, err error) {
+	defer utils.WithinOp("core.manager.AliasManager.Save", &err)
+
+	err = handleExits(a.store.CustomNameExists(ctx, link.CustomName, link.CreatedBy))
 	if err != nil {
 		return "", err
-	}
-	if exists {
-		return "", core.ErrCustomNameExists
 	}
 
 	if link.Alias == "" {
 		return a.generateAndSave(ctx, *link)
 	}
 
-	exists, err = a.store.AliasExists(ctx, link.Alias)
-	if err != nil {
+	if err = handleExits(a.store.AliasExists(ctx, link.Alias)); err != nil {
 		return "", err
-	}
-	if exists {
-		return "", core.ErrAliasExists
 	}
 
 	if _, err = a.store.Save(ctx, link); err != nil {
@@ -58,30 +55,43 @@ func (a *AliasManager) Save(ctx context.Context, link *model.Link) (string, erro
 	return link.Alias, nil
 }
 
-func (a *AliasManager) generateAndSave(ctx context.Context, link model.Link) (string, error) {
-	var i int
+func (a *AliasManager) generateAndSave(ctx context.Context, link model.Link) (_ string, err error) {
+	defer utils.WithinOp("core.manager.AliasManager.generateAndSave", &err)
 
-	errs := make([]error, a.triesToGenerate)
+	errs := make([]error, a.triesToGenerate+1)
+
+	var i int
 
 	for i = 0; i < a.triesToGenerate; i++ {
 		link.Alias = a.generator.Generate()
 
-		_, err := a.store.Save(ctx, &link)
+		_, err = a.store.Save(ctx, &link)
 
 		if err == nil {
 			return link.Alias, nil
-		} else {
-			errs = append(errs, err)
 		}
+
+		errs = append(errs, fmt.Errorf("%w (generate - %s)", err, link.Alias))
 	}
 
 	if i == a.triesToGenerate {
 		errs = append(errs, core.ErrCantGenerateInTries)
 	}
 
-	if len(errs) != 0 {
+	if len(errs) > 0 {
 		return "", errors.Join(errs...)
 	}
 
 	return link.Alias, nil
+}
+
+func handleExits(exists bool, err error) error {
+	if err != nil {
+		return err
+	}
+	if exists {
+		return core.ErrAliasExists
+	}
+
+	return nil
 }
