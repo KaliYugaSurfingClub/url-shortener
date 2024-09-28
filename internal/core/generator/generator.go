@@ -2,16 +2,16 @@ package generator
 
 import "math/rand"
 
-type Generator struct {
+type AliasGenerator struct {
 	alp    []rune
 	length int
 }
 
-func New(alp []rune, length int) *Generator {
-	return &Generator{alp: alp, length: length}
+func New(alp []rune, length int) *AliasGenerator {
+	return &AliasGenerator{alp: alp, length: length}
 }
 
-func (g *Generator) Generate() string {
+func (g *AliasGenerator) Generate() string {
 	res := make([]rune, g.length)
 
 	for i := 0; i < g.length; i++ {

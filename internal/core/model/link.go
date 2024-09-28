@@ -5,17 +5,17 @@ import (
 )
 
 type Link struct {
-	Id                 int64
-	CreatedBy          int64
-	Original           string
-	Alias              string
-	CustomName         string
-	ClicksCount        int64
-	LastAccessTime     *time.Time
-	ExpirationDate     *time.Time
-	ClicksToExpiration *int64
-	Archived           bool
-	CreatedAt          time.Time
+	Id             int64
+	CreatedBy      int64
+	Original       string
+	Alias          string
+	CustomName     string
+	ClicksCount    int64
+	LastAccessTime *time.Time
+	ExpirationDate *time.Time
+	ClicksToExpire *int64
+	Archived       bool
+	CreatedAt      time.Time
 }
 
 type Order int8

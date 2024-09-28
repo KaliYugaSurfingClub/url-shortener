@@ -11,7 +11,7 @@ func linkFromRow(row pgx.Row) (*model.Link, error) {
 	err := row.Scan(
 		&link.Id, &link.CreatedBy, &link.Original, &link.Alias, &link.CustomName,
 		&link.ClicksCount, &link.LastAccessTime, &link.ExpirationDate,
-		&link.ClicksToExpiration, &link.Archived, &link.CreatedAt,
+		&link.ClicksToExpire, &link.Archived, &link.CreatedAt,
 	)
 
 	return link, err

@@ -29,12 +29,12 @@ package postgres
 //	}
 //
 //	if rand.Int()%2 == 0 {
-//		clicksToExpiration := int64(rand.Int()) % 1024
-//		res.ClicksToExpiration = &clicksToExpiration
+//		ClicksToExpire := int64(rand.Int()) % 1024
+//		res.ClicksToExpire = &ClicksToExpire
 //	}
 //
-//	if res.ClicksToExpiration != nil {
-//		res.ClicksCount = int64(rand.Intn(int(*res.ClicksToExpiration) + 100))
+//	if res.ClicksToExpire != nil {
+//		res.ClicksCount = int64(rand.Intn(int(*res.ClicksToExpire) + 100))
 //	}
 //
 //	return res
@@ -56,9 +56,9 @@ package postgres
 //
 //		query := `
 //			INSERT INTO link(created_by, original, alias, custom_name, clicks_count,
-//							 last_access_time, expiration_date, clicks_to_expiration, archived)
+//							 last_access_time, expiration_date, clicks_to_expire, archived)
 //			VALUES (:created_by, :original, :alias, :custom_name, :clicks_count,
-//					:last_access_time, :expiration_date, :clicks_to_expiration, :archived)
+//					:last_access_time, :expiration_date, :clicks_to_expire, :archived)
 //		`
 //
 //		db.NamedExec(query, entity.ModelToLink(&link))

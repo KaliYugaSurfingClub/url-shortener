@@ -18,17 +18,17 @@ var (
 	isArchivedLinkSql = ` archived = TRUE `
 	isExpiredLinkSql  = `
 		((expiration_date IS NOT NULL AND expiration_date <= CURRENT_TIMESTAMP) OR
-		(clicks_to_expiration IS NOT NULL AND clicks_count >= clicks_to_expiration)) AND
+		(clicks_to_expire IS NOT NULL AND clicks_count >= clicks_to_expire)) AND
 		archived = FALSE 
 	`
 	isActiveLinkSql = `
 		(expiration_date IS NULL OR expiration_date > CURRENT_TIMESTAMP) AND
-		(clicks_to_expiration IS NULL OR clicks_count < clicks_to_expiration) AND
+		(clicks_to_expire IS NULL OR clicks_count < clicks_to_expire) AND
 		archived = FALSE
 	`
 	isInactiveLinkSql = `
 		(expiration_date IS NULL OR expiration_date > CURRENT_TIMESTAMP) OR
-		(clicks_to_expiration IS NULL OR clicks_count < clicks_to_expiration) OR
+		(clicks_to_expire IS NULL OR clicks_count < clicks_to_expire) OR
 		archived = TRUE 
 	`
 
@@ -42,9 +42,9 @@ var (
 
 	constrainsSql = map[model.LinkConstraints]string{
 		model.ConstraintAny:     "",
-		model.ConstraintWith:    "(clicks_to_expiration IS NOT NULL OR expiration_date IS NOT NULL)",
+		model.ConstraintWith:    "(clicks_to_expire IS NOT NULL OR expiration_date IS NOT NULL)",
 		model.ConstraintWithout: "clicks_count IS NULL AND expiration_date IS NULL",
-		model.ConstraintClicks:  "clicks_to_expiration IS NOT NULL",
+		model.ConstraintClicks:  "clicks_to_expire IS NOT NULL",
 		model.ConstraintDate:    "expiration_date IS NOT NULL",
 	}
 
@@ -53,7 +53,7 @@ var (
 		model.SortByCustomName:      " custom_name ",
 		model.SortByClicksCount:     " clicks_count ",
 		model.SortByLastAccess:      " last_access_time ",
-		model.SortByLeftClicksCount: " COALESCE(clicks_to_expiration - clicks_count, -1) ",
+		model.SortByLeftClicksCount: " COALESCE(clicks_to_expire - clicks_count, -1) ",
 		model.SortByExpirationDate:  " expiration_date ",
 	}
 )

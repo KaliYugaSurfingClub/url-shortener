@@ -105,17 +105,17 @@ package postgres
 //	for _, link := range links {
 //		var leftClicks int64
 //
-//		if link.ClicksToExpiration != nil {
-//			leftClicks = *link.ClicksToExpiration - link.ClicksCount
+//		if link.ClicksToExpire != nil {
+//			leftClicks = *link.ClicksToExpire - link.ClicksCount
 //		}
 //
 //		if link.ExpirationDate == nil {
 //			link.ExpirationDate = &time.Time{}
 //		}
 //
-//		if link.ClicksToExpiration == nil {
+//		if link.ClicksToExpire == nil {
 //			var z int64
-//			link.ClicksToExpiration = &z
+//			link.ClicksToExpire = &z
 //		}
 //
 //		if link.LastAccessTime == nil {
@@ -125,7 +125,7 @@ package postgres
 //		_, err := fmt.Fprintf(w,
 //			"{\n\tCustomName - %s\n"+
 //				"\tClicksCount - %d\n"+
-//				"\tClicksToExpiration - %d\n"+
+//				"\tClicksToExpire - %d\n"+
 //				"\tLeftClicksCount - %d\n"+
 //				"\tLastAccessTime %v\n"+
 //				"\tExpirationDate %v\n"+
@@ -134,7 +134,7 @@ package postgres
 //				"}\n",
 //			link.CustomName,
 //			link.ClicksCount,
-//			*link.ClicksToExpiration,
+//			*link.ClicksToExpire,
 //			leftClicks,
 //			*link.LastAccessTime,
 //			*link.ExpirationDate,

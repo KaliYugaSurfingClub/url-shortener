@@ -15,7 +15,7 @@ type LinkStorage interface {
 	// CustomNameExists - check unique constraint for (customName, userId)
 	CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error)
 	// Save You should check link unique constrains with AliasExists and CustomNameExists.
-	Save(ctx context.Context, link *model.Link) (int64, error)
+	Save(ctx context.Context, link model.Link) (*model.Link, error)
 	UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error
 }
 
@@ -28,7 +28,7 @@ type UserStorage interface {
 	AddToBalance(ctx context.Context, id int64, payment int) error
 }
 
-type AliasGenerator interface {
+type Generator interface {
 	Generate() string
 }
 

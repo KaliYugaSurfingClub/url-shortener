@@ -27,7 +27,7 @@ CREATE TABLE link(
     last_access_time TIMESTAMP,
 
     expiration_date TIMESTAMP CHECK (expiration_date IS NULL OR expiration_date > CURRENT_TIMESTAMP),
-    clicks_to_expiration INTEGER CHECK (clicks_to_expiration IS NULL OR clicks_to_expiration > 0),
+    clicks_to_expire INTEGER CHECK (clicks_to_expire IS NULL OR clicks_to_expire > 0),
     archived BOOLEAN DEFAULT FALSE NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,

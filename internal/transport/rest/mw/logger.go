@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Logger(log *slog.Logger) func(http.Handler) http.Handler {
+func NewLogger(log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		log.Info("logger middleware enabled")
 
@@ -40,14 +40,14 @@ func Logger(log *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-type LogKey struct{}
+type logKey struct{}
 
 func ExtractLog(ctx context.Context, operation string) *slog.Logger {
 	if ctx == nil {
 		return nil
 	}
 
-	log, ok := ctx.Value(LogKey{}).(*slog.Logger)
+	log, ok := ctx.Value(logKey{}).(*slog.Logger)
 	if !ok {
 		return nil
 	}
@@ -56,7 +56,7 @@ func ExtractLog(ctx context.Context, operation string) *slog.Logger {
 }
 
 func InjectLog(ctx context.Context, log *slog.Logger) context.Context {
-	return context.WithValue(ctx, LogKey{}, log)
+	return context.WithValue(ctx, logKey{}, log)
 }
 
 func ErrAttr(err error) slog.Attr {

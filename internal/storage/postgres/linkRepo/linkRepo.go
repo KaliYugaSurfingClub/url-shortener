@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
@@ -111,32 +112,37 @@ func (r *LinkRepo) CustomNameExists(ctx context.Context, customName string, user
 	return exists, nil
 }
 
-func (r *LinkRepo) Save(ctx context.Context, link *model.Link) (int64, error) {
+func (r *LinkRepo) Save(ctx context.Context, link model.Link) (*model.Link, error) {
 	const op = "storage.postgres.LinkRepo.Save"
 
 	query := `
-		INSERT INTO link(created_by, original, alias, custom_name, expiration_date, clicks_to_expiration)
+		INSERT INTO link(created_by, original, alias, custom_name, expiration_date, clicks_to_expire)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id
+		RETURNING id, created_at
 	`
-
-	var id int64
-
-	custom := link.Alias
-	if custom == "" {
-		custom = link.Alias
-	}
 
 	err := r.db.QueryRow(
 		ctx, query, link.CreatedBy, link.Original, link.Alias,
-		custom, link.ExpirationDate, link.ClicksToExpiration,
-	).Scan(&id)
+		link.CustomName, link.ExpirationDate, link.ClicksToExpire,
+	).Scan(&link.Id, &link.CreatedAt)
 
-	if err != nil {
-		return -1, fmt.Errorf("%s: %w", op, err)
+	//todo tests
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		switch pgErr.ConstraintName {
+		case "link_alias_key":
+			return nil, fmt.Errorf("%s: %w (alias: %s)", op, core.ErrAliasExists, link.Alias)
+		case "link_custom_name_created_by_key":
+			format := "%s: %w (custom_name: %s, created_by %d)"
+			return nil, fmt.Errorf(format, op, core.ErrCustomNameExists, link.CustomName, link.CreatedBy)
+		}
 	}
 
-	return id, nil
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &link, nil
 }
 
 func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
