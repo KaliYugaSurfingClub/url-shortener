@@ -1,4 +1,4 @@
-package linkCreator
+package linkShortener
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 	"shortener/internal/utils"
 )
 
-type LinkCreator struct {
+type LinkShortener struct {
 	storage         port.LinkStorage
 	generator       port.Generator
 	triesToGenerate int
 }
 
-func New(storage port.LinkStorage, generator port.Generator, triesToGenerate int) (*LinkCreator, error) {
+func New(storage port.LinkStorage, generator port.Generator, triesToGenerate int) (*LinkShortener, error) {
 	if generator == nil {
 		return nil, errors.New("generator can't be nil")
 	}
@@ -24,44 +24,44 @@ func New(storage port.LinkStorage, generator port.Generator, triesToGenerate int
 		return nil, errors.New("triesToGenerate can not be less than 0")
 	}
 
-	return &LinkCreator{
+	return &LinkShortener{
 		storage,
 		generator,
 		triesToGenerate,
 	}, nil
 }
 
-func (c *LinkCreator) Short(ctx context.Context, toSave model.Link) (*model.Link, error) {
+func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (*model.Link, error) {
 	if toSave.Alias == "" {
-		return c.generateAndSave(ctx, &toSave)
+		return s.generateAndSave(ctx, &toSave)
 	}
 
-	return c.save(ctx, &toSave)
+	return s.save(ctx, &toSave)
 }
 
-func (c *LinkCreator) save(ctx context.Context, toSave *model.Link) (saved *model.Link, err error) {
-	defer utils.WithinOp("core.manager.LinkCreator.save", &err)
+func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (saved *model.Link, err error) {
+	defer utils.WithinOp("core.manager.LinkShortener.save", &err)
 
 	if toSave.CustomName == "" {
 		toSave.CustomName = toSave.Alias
 	}
 
-	return c.storage.Save(ctx, *toSave)
+	return s.storage.Save(ctx, *toSave)
 }
 
-func (c *LinkCreator) generateAndSave(ctx context.Context, toSave *model.Link) (saved *model.Link, err error) {
-	defer utils.WithinOp("core.manager.LinkCreator.generateAndSave", &err)
+func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (saved *model.Link, err error) {
+	defer utils.WithinOp("core.manager.LinkShortener.generateAndSave", &err)
 
 	noCustomName := toSave.CustomName == ""
 
-	for i := 0; i < c.triesToGenerate; i++ {
-		toSave.Alias = c.generator.Generate()
+	for i := 0; i < s.triesToGenerate; i++ {
+		toSave.Alias = s.generator.Generate()
 
 		if noCustomName {
 			toSave.CustomName = toSave.Alias
 		}
 
-		saved, err = c.storage.Save(ctx, *toSave)
+		saved, err = s.storage.Save(ctx, *toSave)
 		if err == nil {
 			return saved, nil
 		}

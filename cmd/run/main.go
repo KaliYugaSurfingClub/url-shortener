@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 	"shortener/internal/core/generator"
-	"shortener/internal/core/services/linkCreator"
+	"shortener/internal/core/services/linkShortener"
 	"shortener/internal/storage/postgres/linkRepo"
 	"shortener/internal/transport/rest/handler"
 	"shortener/internal/transport/rest/mw"
@@ -47,7 +47,7 @@ func main() {
 	//transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
-	aliasManager, err := linkCreator.New(linkStore, aliasGenerator, 10)
+	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
 
 	//adViewManager := adViewManager.New(linkStore, clickStore, userStore, transactor)
 
