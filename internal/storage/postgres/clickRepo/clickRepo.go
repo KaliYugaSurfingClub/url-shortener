@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core/model"
+	"shortener/internal/core/port"
 	"shortener/internal/storage/transaction"
 )
+
+var _ port.ClickStorage = (*ClickRepo)(nil)
 
 type ClickRepo struct {
 	db transaction.Queries

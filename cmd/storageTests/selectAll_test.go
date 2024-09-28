@@ -157,7 +157,7 @@ package postgres
 //
 //	for _, test := range generateCombinations() {
 //		t.Run(test.name, func(t *testing.T) {
-//			count, err := repo.GetCount(context.Background(), creatorId, test.params)
+//			count, err := repo.GetCountByUserId(context.Background(), creatorId, test.params)
 //			require.NoError(t, err)
 //
 //			links, err := repo.GetByUserId(context.Background(), creatorId, test.params)

@@ -69,7 +69,7 @@ func main() {
 
 	r.Route("/link", func(r chi.Router) {
 		r.Use(mw.CheckAuth(jwtOpt))
-		r.Post("/", handler.Short(aliasManager))
+		r.Post("/", handler.ShortLink(aliasManager))
 	})
 
 	server := &http.Server{

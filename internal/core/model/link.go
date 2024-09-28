@@ -25,16 +25,6 @@ const (
 	Desc
 )
 
-type LinkType int8
-
-const (
-	TypeAny LinkType = iota
-	TypeActive
-	TypeInactive
-	TypeExpired
-	TypeArchived
-)
-
 type SortByLink int8
 
 const (
@@ -44,6 +34,16 @@ const (
 	SortByLastAccess
 	SortByExpirationDate
 	SortByLeftClicksCount
+)
+
+type LinkType int8
+
+const (
+	TypeAny LinkType = iota
+	TypeActive
+	TypeInactive
+	TypeExpired
+	TypeArchived
 )
 
 type LinkConstraints int8
@@ -56,6 +56,11 @@ const (
 	ConstraintWithout
 )
 
+type Pagination struct {
+	Page int
+	Size int
+}
+
 type LinkFilter struct {
 	Type        LinkType
 	Constraints LinkConstraints
@@ -67,6 +72,7 @@ type LinkSort struct {
 }
 
 type GetLinksParams struct {
-	Filter LinkFilter
-	Sort   LinkSort
+	Filter     LinkFilter
+	Sort       LinkSort
+	Pagination Pagination
 }

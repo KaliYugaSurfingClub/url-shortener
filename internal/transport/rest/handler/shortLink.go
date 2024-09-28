@@ -10,11 +10,12 @@ import (
 	"time"
 )
 
-type Shortener interface {
+type LinkShortener interface {
 	Short(ctx context.Context, link model.Link) (*model.Link, error)
 }
 
-func Short(shortener Shortener) http.HandlerFunc {
+func ShortLink(shortener LinkShortener) http.HandlerFunc {
+	//todo validation
 	type request struct {
 		Original       string     `json:"original"`
 		Alias          string     `json:"alias"`
@@ -29,7 +30,7 @@ func Short(shortener Shortener) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := mw.ExtractLog(r.Context(), "transport.Rest.LinkManager")
+		log := mw.ExtractLog(r.Context(), "transport.Rest.ShortLink")
 
 		id, _ := mw.ExtractUserID(r.Context())
 

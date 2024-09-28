@@ -5,13 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
+	"shortener/internal/core/port"
+	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/transaction"
 	"time"
 )
+
+var _ port.LinkStorage = (*LinkRepo)(nil)
 
 type LinkRepo struct {
 	db transaction.Queries
@@ -39,8 +42,8 @@ func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.L
 	return link, nil
 }
 
-func (r *LinkRepo) GetCount(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
-	const op = "storage.postgres.LinkRepo.GetCount"
+func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
+	const op = "storage.postgres.LinkRepo.GetCountByUserId"
 
 	query := build(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params).String()
 
@@ -60,6 +63,7 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.G
 	query := build(`SELECT * FROM link WHERE created_by = $1`).
 		Filter(params.Filter).
 		Sort(params.Sort).
+		Paginate(params.Pagination).
 		String()
 
 	links := make([]*model.Link, 0)
@@ -126,15 +130,14 @@ func (r *LinkRepo) Save(ctx context.Context, link model.Link) (*model.Link, erro
 		link.CustomName, link.ExpirationDate, link.ClicksToExpire,
 	).Scan(&link.Id, &link.CreatedAt)
 
-	//todo tests
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		switch pgErr.ConstraintName {
+	if name, ok := postgres.ParseConstraintError(err); ok {
+		switch name {
 		case "link_alias_key":
-			return nil, fmt.Errorf("%s: %w (alias: %s)", op, core.ErrAliasExists, link.Alias)
+			return nil, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
 		case "link_custom_name_created_by_key":
-			format := "%s: %w (custom_name: %s, created_by %d)"
-			return nil, fmt.Errorf(format, op, core.ErrCustomNameExists, link.CustomName, link.CreatedBy)
+			return nil, fmt.Errorf("%s: %w", op, core.ErrCustomNameExists)
+		default:
+			return nil, fmt.Errorf("%s: unexpected constraint error", op)
 		}
 	}
 

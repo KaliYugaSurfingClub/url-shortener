@@ -3,6 +3,7 @@ package linkRepo
 import (
 	"shortener/internal/core/model"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -89,6 +90,18 @@ func (b *builder) Sort(params model.LinkSort) *builder {
 	b.query.WriteString(" ORDER BY ")
 	b.query.WriteString(sortBy[params.SortBy])
 	b.query.WriteString(OrderToStr(params.Order))
+
+	return b
+}
+
+func (b *builder) Paginate(params model.Pagination) *builder {
+	offset := (params.Page - 1) * params.Size
+	limit := params.Size
+
+	b.query.WriteString(" LIMIT ")
+	b.query.WriteString(strconv.Itoa(limit))
+	b.query.WriteString(" OFFSET ")
+	b.query.WriteString(strconv.Itoa(offset))
 
 	return b
 }

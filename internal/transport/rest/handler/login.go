@@ -9,7 +9,7 @@ import (
 
 func Login(jwtOpt mw.JwtOptions, lifetime time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := mw.ExtractLog(r.Context(), "transport.rest.controller.authController.Login")
+		log := mw.ExtractLog(r.Context(), "transport.rest.Login")
 
 		claims := jwt.MapClaims{
 			jwtOpt.UserIdKey: 1,
