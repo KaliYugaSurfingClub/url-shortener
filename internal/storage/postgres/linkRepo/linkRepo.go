@@ -137,7 +137,7 @@ func (r *LinkRepo) Save(ctx context.Context, link model.Link) (*model.Link, erro
 		case "link_custom_name_created_by_key":
 			return nil, fmt.Errorf("%s: %w", op, core.ErrCustomNameExists)
 		default:
-			return nil, fmt.Errorf("%s: unexpected constraint error", op)
+			return nil, fmt.Errorf("%s: unexpected constraint error %w", op, err)
 		}
 	}
 

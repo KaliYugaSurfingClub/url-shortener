@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-chi/render"
 	"net/http"
 	"shortener/internal/core/model"
@@ -62,7 +61,7 @@ func GetUserLinks(provider LinksProvider) http.HandlerFunc {
 
 		totalCount, err := provider.GetCountByUserId(r.Context(), userId, params.Filter)
 		if err != nil {
-			log.Error("cannot get user links", mw.ErrAttr(err))
+			log.Error("cannot get count of user links", mw.ErrAttr(err))
 			render.JSON(w, r, rest.NewErrorResponse(err))
 			return
 		}
@@ -76,8 +75,6 @@ func GetUserLinks(provider LinksProvider) http.HandlerFunc {
 			render.JSON(w, r, rest.NewErrorResponse(err))
 			return
 		}
-
-		fmt.Println(links)
 
 		//todo add go generate mapper
 		for _, l := range links {
