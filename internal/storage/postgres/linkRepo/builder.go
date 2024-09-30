@@ -49,7 +49,7 @@ var (
 		model.ConstraintDate:    "expiration_date IS NOT NULL",
 	}
 
-	sortBy = map[model.SortByLink]string{
+	sortBy = map[model.LinkSortBy]string{
 		model.SortByCreatedAt:       " created_at ",
 		model.SortByCustomName:      " custom_name ",
 		model.SortByClicksCount:     " clicks_count ",

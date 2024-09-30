@@ -25,10 +25,10 @@ const (
 	Desc
 )
 
-type SortByLink int8
+type LinkSortBy int8
 
 const (
-	SortByCreatedAt SortByLink = iota
+	SortByCreatedAt LinkSortBy = iota
 	SortByCustomName
 	SortByClicksCount
 	SortByLastAccess
@@ -67,7 +67,7 @@ type LinkFilter struct {
 }
 
 type LinkSort struct {
-	SortBy SortByLink
+	SortBy LinkSortBy
 	Order  Order
 }
 
