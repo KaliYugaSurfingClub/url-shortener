@@ -38,12 +38,11 @@ type data struct {
 	Links      []response.Link `json:"links"`
 }
 
-type LinksProvider interface {
-	GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error)
-	GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error)
+type provider interface {
+	GetUsersLinks(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, int64, error)
 }
 
-func New(provider LinksProvider) http.HandlerFunc {
+func New(provider provider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
 
@@ -52,34 +51,28 @@ func New(provider LinksProvider) http.HandlerFunc {
 		var req request
 		if err := render.DecodeJSON(r.Body, &req); err != nil {
 			log.Error("cannot decode body", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewError(err))
+			render.JSON(w, r, response.NewErrDecodeBody())
 			return
 		}
 
 		if err := req.Validate(); err != nil {
 			log.Error("validation error", mw.ErrAttr(err))
+			render.JSON(w, r, response.NewError(err))
 			return
 		}
 
 		params := paramsFromRequest(&req)
 
-		totalCount, err := provider.GetCountByUserId(r.Context(), userId, params.Filter)
-		if err != nil {
-			log.Error("cannot get count of user links", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewError(err))
-			return
-		}
-
-		links, err := provider.GetByUserId(r.Context(), userId, params)
+		links, totalCount, err := provider.GetUsersLinks(r.Context(), userId, params)
 		if err != nil {
 			log.Error("cannot get user links", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewError(err))
+			render.JSON(w, r, response.NewErrInternal())
 			return
 		}
 
 		render.JSON(w, r, response.NewOk(data{
 			TotalCount: totalCount,
-			Links:      funk.Map(links, func(item *model.Link) response.Link { return response.LinkFromModel(item) }).([]response.Link),
+			Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
 		}))
 	}
 }

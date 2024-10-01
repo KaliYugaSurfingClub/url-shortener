@@ -17,6 +17,8 @@ type LinkStorage interface {
 	// Save You should check link unique constrains with AliasExists and CustomNameExists.
 	Save(ctx context.Context, link model.Link) (*model.Link, error)
 	UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error
+	GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error)
+	GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error)
 }
 
 type ClickStorage interface {

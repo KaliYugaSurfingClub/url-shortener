@@ -1,35 +1,35 @@
 package response
 
-import (
-	"errors"
-	"shortener/internal/core"
-)
-
 const (
 	StatusOk    = "Ok"
 	StatusError = "Error"
 )
 
 type Response struct {
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
-	Data   any    `json:"data,omitempty"`
+	Status    string `json:"status"`
+	Data      any    `json:"data,omitempty"`
+	ErrorCode string `json:"error,omitempty"`
 }
 
-func NewError(err error) Response {
-	resp := Response{
-		Status: StatusError,
+func NewError(err error) (resp Response) {
+	return Response{
+		Status:    StatusError,
+		ErrorCode: err.Error(),
 	}
+}
 
-	logicErr := &core.LogicErr{}
-
-	if errors.As(err, logicErr) {
-		resp.Error = logicErr.Error()
-	} else {
-		resp.Error = "internal server error"
+func NewErrDecodeBody() Response {
+	return Response{
+		Status:    StatusError,
+		ErrorCode: "unable to decode body",
 	}
+}
 
-	return resp
+func NewErrInternal() Response {
+	return Response{
+		Status:    StatusError,
+		ErrorCode: "internal server error",
+	}
 }
 
 func NewOk(data any) Response {

@@ -81,7 +81,7 @@ func (v *AdViewer) CompleteView(ctx context.Context, clickId int64, userId int64
 //
 //	err := r.clicksStore.UpdateStatus(context.Background(), clickId, model.AdCompleted)
 //	if err != nil {
-//		log.Printf("Error updating click status: %v", err)
+//		log.Printf("ErrorCode updating click status: %v", err)
 //		return
 //		//todo update status to closed maybe
 //	}
