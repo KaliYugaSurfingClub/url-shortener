@@ -2,25 +2,35 @@ package getUserLinksHandler
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator"
+	"github.com/go-ozzo/ozzo-validation"
 	"github.com/thoas/go-funk"
 	"net/http"
 	"shortener/internal/core/model"
-	"shortener/internal/transport/rest/jsonValidator"
 	"shortener/internal/transport/rest/mw"
 	"shortener/internal/transport/rest/response"
-	"strings"
+	"shortener/internal/utils/valkit"
 )
 
 type request struct {
-	Type        string `json:"type" validate:"validate_type"`
-	Constraints string `json:"constraints" validate:"validate_constraints"`
-	SortBy      string `json:"sortBy" validate:"validate_sortBy"`
-	Order       string `json:"order" validate:"validate_order"`
+	Type        string `json:"type,omitempty"`
+	Constraints string `json:"constraints,omitempty"`
+	SortBy      string `json:"sortBy"`
+	Order       string `json:"order"`
 	Page        int    `json:"page"`
 	Size        int    `json:"size"`
+}
+
+// todo wrap lib
+func (r *request) Validate() error {
+	return validation.ValidateStruct(r,
+		validation.Field(&r.Type, validation.By(valkit.ContainsInMap(types))),
+		validation.Field(&r.Constraints, validation.By(valkit.ContainsInMap(constraints))),
+		validation.Field(&r.SortBy, validation.By(valkit.ContainsInMap(sortBy))),
+		validation.Field(&r.Order, validation.By(valkit.ContainsInMap(order))),
+		validation.Field(&r.Page, validation.By(valkit.Positive())),
+		validation.Field(&r.Size, validation.By(valkit.Positive())),
+	)
 }
 
 type data struct {
@@ -34,15 +44,6 @@ type LinksProvider interface {
 }
 
 func New(provider LinksProvider) http.HandlerFunc {
-	valid := jsonValidator.New()
-
-	valid.AddValidation(
-		validationFuncFromMap("validate_type", types),
-		validationFuncFromMap("validate_constraints", constraints),
-		validationFuncFromMap("validate_sortBy", sortBy),
-		validationFuncFromMap("validate_order", order),
-	)
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
 
@@ -55,9 +56,8 @@ func New(provider LinksProvider) http.HandlerFunc {
 			return
 		}
 
-		if err := valid.Validate(req); err != nil {
+		if err := req.Validate(); err != nil {
 			log.Error("validation error", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewError(err))
 			return
 		}
 
@@ -84,22 +84,6 @@ func New(provider LinksProvider) http.HandlerFunc {
 	}
 }
 
-func validationFuncFromMap[T any](name string, acceptable map[string]T) jsonValidator.ValidationFunc {
-	fn := func(fl validator.FieldLevel) bool {
-		_, ok := types[fl.Field().String()]
-		return ok
-	}
-
-	keys := funk.Keys(acceptable).([]string)
-	inBuckets := strings.Join(funk.Map(keys, func(s string) string { return s }).([]string), " ")
-
-	return jsonValidator.ValidationFunc{
-		Name: name,
-		Fn:   fn,
-		Err:  fmt.Errorf("should be one from %s", strings.TrimSpace(inBuckets)),
-	}
-}
-
 var types = map[string]model.LinkType{
 	"":         model.TypeAny,
 	"any":      model.TypeAny,
@@ -111,20 +95,20 @@ var types = map[string]model.LinkType{
 
 var constraints = map[string]model.LinkConstraints{
 	"":        model.ConstraintAny,
-	"Any":     model.ConstraintAny,
-	"Clicks":  model.ConstraintClicks,
-	"Date":    model.ConstraintDate,
-	"With":    model.ConstraintWith,
-	"Without": model.ConstraintWithout,
+	"any":     model.ConstraintAny,
+	"clicks":  model.ConstraintClicks,
+	"date":    model.ConstraintDate,
+	"with":    model.ConstraintWith,
+	"without": model.ConstraintWithout,
 }
 
 var sortBy = map[string]model.LinkSortBy{
-	"CreatedAt":       model.SortByCreatedAt,
-	"CustomName":      model.SortByCustomName,
-	"ClicksCount":     model.SortByClicksCount,
-	"LastAccess":      model.SortByLastAccess,
-	"ExpirationDate":  model.SortByExpirationDate,
-	"LeftClicksCount": model.SortByLeftClicksCount,
+	"createdAt":       model.SortByCreatedAt,
+	"customName":      model.SortByCustomName,
+	"clicksCount":     model.SortByClicksCount,
+	"lastAccess":      model.SortByLastAccess,
+	"expirationDate":  model.SortByExpirationDate,
+	"leftClicksCount": model.SortByLeftClicksCount,
 }
 
 var order = map[string]model.Order{
