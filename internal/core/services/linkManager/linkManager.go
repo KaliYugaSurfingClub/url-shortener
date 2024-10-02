@@ -7,23 +7,31 @@ import (
 )
 
 type LinkManager struct {
-	provider port.LinkStorage
+	links  port.LinkStorage
+	clicks port.ClickStorage
 }
 
-func New(provider port.LinkStorage) *LinkManager {
-	return &LinkManager{provider: provider}
+func New(linkStorage port.LinkStorage, clickStorage port.ClickStorage) *LinkManager {
+	return &LinkManager{
+		links:  linkStorage,
+		clicks: clickStorage,
+	}
 }
 
 func (m *LinkManager) GetUsersLinks(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, int64, error) {
-	totalCount, err := m.provider.GetCountByUserId(ctx, userId, params.Filter)
+	totalCount, err := m.links.GetCountByUserId(ctx, userId, params.Filter)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	links, err := m.provider.GetByUserId(ctx, userId, params)
+	links, err := m.links.GetByUserId(ctx, userId, params)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	return links, totalCount, nil
+}
+
+func (m *LinkManager) GetLinkById(ctx context.Context, linkId int64) {
+
 }

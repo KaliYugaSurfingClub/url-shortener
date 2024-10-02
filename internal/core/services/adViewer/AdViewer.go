@@ -8,23 +8,23 @@ import (
 )
 
 type AdViewer struct {
-	linksStore  port.LinkStorage
-	clicksStore port.ClickStorage
-	userStore   port.UserStorage
-	transactor  port.Transactor
+	links      port.LinkStorage
+	clicks     port.ClickStorage
+	users      port.UserStorage
+	transactor port.Transactor
 }
 
 func New(
-	linksStore port.LinkStorage,
-	clicksStore port.ClickStorage,
-	userStore port.UserStorage,
+	linksStorage port.LinkStorage,
+	clicksStorage port.ClickStorage,
+	userStorage port.UserStorage,
 	transactor port.Transactor) *AdViewer {
 
 	return &AdViewer{
-		linksStore:  linksStore,
-		clicksStore: clicksStore,
-		userStore:   userStore,
-		transactor:  transactor,
+		links:      linksStorage,
+		clicks:     clicksStorage,
+		users:      userStorage,
+		transactor: transactor,
 	}
 }
 
@@ -34,12 +34,12 @@ func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata *mode
 	}
 
 	err = v.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		link, err = v.linksStore.GetActiveByAlias(ctx, alias)
+		link, err = v.links.GetActiveByAlias(ctx, alias)
 		if err != nil {
 			return err
 		}
 
-		if err = v.linksStore.UpdateLastAccess(ctx, link.Id, metadata.AccessTime); err != nil {
+		if err = v.links.UpdateLastAccess(ctx, link.Id, metadata.AccessTime); err != nil {
 			return err
 		}
 
@@ -49,7 +49,7 @@ func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata *mode
 			Metadata: *metadata,
 		}
 
-		clickId, err = v.clicksStore.Save(ctx, clickToSave)
+		clickId, err = v.clicks.Save(ctx, clickToSave)
 		if err != nil {
 			return err
 		}
@@ -62,13 +62,13 @@ func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata *mode
 
 func (v *AdViewer) CompleteView(ctx context.Context, clickId int64, userId int64) error {
 	return v.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		if err := v.clicksStore.UpdateStatus(ctx, clickId, model.AdCompleted); err != nil {
+		if err := v.clicks.UpdateStatus(ctx, clickId, model.AdCompleted); err != nil {
 			return err
 		}
 
 		payment := 10
 
-		if err := v.userStore.AddToBalance(ctx, userId, payment); err != nil {
+		if err := v.users.AddToBalance(ctx, userId, payment); err != nil {
 			return err
 		}
 
