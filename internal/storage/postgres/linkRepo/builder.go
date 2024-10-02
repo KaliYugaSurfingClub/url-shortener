@@ -99,9 +99,9 @@ func (b *builder) Paginate(params model.Pagination) *builder {
 	limit := params.Size
 
 	b.query.WriteString(" LIMIT ")
-	b.query.WriteString(strconv.Itoa(limit))
+	b.query.WriteString(strconv.FormatInt(limit, 10))
 	b.query.WriteString(" OFFSET ")
-	b.query.WriteString(strconv.Itoa(offset))
+	b.query.WriteString(strconv.FormatInt(offset, 10))
 
 	return b
 }

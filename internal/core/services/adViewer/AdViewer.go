@@ -75,16 +75,3 @@ func (v *AdViewer) CompleteView(ctx context.Context, clickId int64, userId int64
 		return nil
 	})
 }
-
-//func (r *AdViewer) waitForCompleteAd(original string, clickId int64) {
-//	time.Sleep(1 / 2 * time.Second)
-//
-//	err := r.clicksStore.UpdateStatus(context.Background(), clickId, model.AdCompleted)
-//	if err != nil {
-//		log.Printf("ErrorCode updating click status: %v", err)
-//		return
-//		//todo update status to closed maybe
-//	}
-//
-//	r.redirectToOriginal(original)
-//}

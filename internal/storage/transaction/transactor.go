@@ -44,7 +44,6 @@ func (t Transactor) WithinTx(ctx context.Context, tFunc func(ctx context.Context
 		}
 	}()
 
-	//todo Rollback with Timeout????
 	if err = tFunc(injectTx(ctx, tx)); err != nil {
 		return fmt.Errorf("execute transaction: %w", err)
 	}

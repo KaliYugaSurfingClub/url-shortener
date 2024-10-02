@@ -190,22 +190,27 @@ func TestGenerateNameAsAnotherUser(t *testing.T) {
 	require.Equal(t, existingNameAsAnotherUser, saved.CustomName)
 }
 
+// todo mocks
 func (s *linkStorage) GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error) {
-	//TODO implement me
 	panic("implement me")
 }
 
 func (s *linkStorage) AliasExists(ctx context.Context, alias string) (bool, error) {
-	//TODO implement me
 	panic("implement me")
 }
 
 func (s *linkStorage) CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error) {
-	//TODO implement me
 	panic("implement me")
 }
 
 func (s *linkStorage) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
-	//TODO implement me
+	panic("implement me")
+}
+
+func (s *linkStorage) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
+	panic("implement me")
+}
+
+func (s *linkStorage) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
 	panic("implement me")
 }

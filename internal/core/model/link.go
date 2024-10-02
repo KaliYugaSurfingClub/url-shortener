@@ -57,8 +57,8 @@ const (
 )
 
 type Pagination struct {
-	Page int
-	Size int
+	Page int64
+	Size int64
 }
 
 type LinkFilter struct {

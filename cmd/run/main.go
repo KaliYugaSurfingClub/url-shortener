@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"shortener/internal/core/generator"
+	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
 	"shortener/internal/storage/postgres/linkRepo"
 	"shortener/internal/transport/rest/handler"
@@ -50,6 +51,7 @@ func main() {
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
+	linkM := linkManager.New(linkStore)
 
 	//adViewManager := adViewManager.New(linkStore, clickStore, userStore, transactor)
 
@@ -72,7 +74,7 @@ func main() {
 	r.Route("/link", func(r chi.Router) {
 		r.Use(mw.CheckAuth(jwtOpt))
 		r.Post("/", shortLinkHandler.New(aliasManager))
-		r.Get("/", getUserLinksHandler.New(linkStore))
+		r.Get("/", getUserLinksHandler.New(linkM))
 	})
 
 	server := &http.Server{

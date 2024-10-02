@@ -17,20 +17,8 @@ type request struct {
 	Constraints string `json:"constraints,omitempty"`
 	SortBy      string `json:"sortBy"`
 	Order       string `json:"order"`
-	Page        int    `json:"page"`
-	Size        int    `json:"size"`
-}
-
-// todo wrap lib
-func (r *request) Validate() error {
-	return validation.ValidateStruct(r,
-		validation.Field(&r.Type, validation.By(valkit.ContainsInMap(types))),
-		validation.Field(&r.Constraints, validation.By(valkit.ContainsInMap(constraints))),
-		validation.Field(&r.SortBy, validation.By(valkit.ContainsInMap(sortBy))),
-		validation.Field(&r.Order, validation.By(valkit.ContainsInMap(order))),
-		validation.Field(&r.Page, validation.By(valkit.Positive())),
-		validation.Field(&r.Size, validation.By(valkit.Positive())),
-	)
+	Page        int64  `json:"page"`
+	Size        int64  `json:"size"`
 }
 
 type data struct {
@@ -48,25 +36,17 @@ func New(provider provider) http.HandlerFunc {
 
 		userId, _ := mw.ExtractUserID(r.Context())
 
-		var req request
-		if err := render.DecodeJSON(r.Body, &req); err != nil {
-			log.Error("cannot decode body", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewErrDecodeBody())
-			return
-		}
-
-		if err := req.Validate(); err != nil {
-			log.Error("validation error", mw.ErrAttr(err))
+		params, err := paramsFromRequest(r)
+		if err != nil {
+			log.Error("invalid request", mw.ErrAttr(err))
 			render.JSON(w, r, response.NewError(err))
 			return
 		}
 
-		params := paramsFromRequest(&req)
-
-		links, totalCount, err := provider.GetUsersLinks(r.Context(), userId, params)
+		links, totalCount, err := provider.GetUsersLinks(r.Context(), userId, *params)
 		if err != nil {
 			log.Error("cannot get user links", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewErrInternal())
+			render.JSON(w, r, response.NewInternalError())
 			return
 		}
 
@@ -75,6 +55,46 @@ func New(provider provider) http.HandlerFunc {
 			Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
 		}))
 	}
+}
+
+func paramsFromRequest(r *http.Request) (*model.GetLinksParams, error) {
+	defer r.Body.Close()
+
+	var req request
+
+	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		return nil, err
+	}
+
+	if err := req.validate(); err != nil {
+		return nil, err
+	}
+
+	return &model.GetLinksParams{
+		Filter: model.LinkFilter{
+			Type:        types[req.Type],
+			Constraints: constraints[req.Constraints],
+		},
+		Sort: model.LinkSort{
+			SortBy: sortBy[req.SortBy],
+			Order:  order[req.Order],
+		},
+		Pagination: model.Pagination{
+			Page: req.Page,
+			Size: req.Size,
+		},
+	}, nil
+}
+
+func (r *request) validate() error {
+	return validation.ValidateStruct(r,
+		validation.Field(&r.Type, validation.By(valkit.ContainsInMap(types))),
+		validation.Field(&r.Constraints, validation.By(valkit.ContainsInMap(constraints))),
+		validation.Field(&r.SortBy, validation.By(valkit.ContainsInMap(sortBy))),
+		validation.Field(&r.Order, validation.By(valkit.ContainsInMap(order))),
+		validation.Field(&r.Page, validation.By(valkit.IsPositive())),
+		validation.Field(&r.Size, validation.By(valkit.IsPositive())),
+	)
 }
 
 var types = map[string]model.LinkType{
@@ -107,21 +127,4 @@ var sortBy = map[string]model.LinkSortBy{
 var order = map[string]model.Order{
 	"asc":  model.Asc,
 	"desc": model.Desc,
-}
-
-func paramsFromRequest(req *request) model.GetLinksParams {
-	return model.GetLinksParams{
-		Filter: model.LinkFilter{
-			Type:        types[req.Type],
-			Constraints: constraints[req.Constraints],
-		},
-		Sort: model.LinkSort{
-			SortBy: sortBy[req.SortBy],
-			Order:  order[req.Order],
-		},
-		Pagination: model.Pagination{
-			Page: req.Page,
-			Size: req.Size,
-		},
-	}
 }

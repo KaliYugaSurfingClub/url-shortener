@@ -18,14 +18,7 @@ func NewError(err error) (resp Response) {
 	}
 }
 
-func NewErrDecodeBody() Response {
-	return Response{
-		Status:    StatusError,
-		ErrorCode: "unable to decode body",
-	}
-}
-
-func NewErrInternal() Response {
+func NewInternalError() Response {
 	return Response{
 		Status:    StatusError,
 		ErrorCode: "internal server error",
