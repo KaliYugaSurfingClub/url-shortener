@@ -12,6 +12,7 @@ import (
 	"shortener/internal/core/generator"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
+	"shortener/internal/storage/postgres/clickRepo"
 	"shortener/internal/storage/postgres/linkRepo"
 	"shortener/internal/transport/rest/handler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
@@ -45,13 +46,13 @@ func main() {
 	defer db.Close()
 
 	linkStore := linkRepo.New(db)
-	//clickStore := clickRepo.New(db)
+	clickStore := clickRepo.New(db)
 	//userStore := &FakeUserStore{}
 	//transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
-	linkM := linkManager.New(linkStore)
+	linkM := linkManager.New(linkStore, clickStore)
 
 	//adViewManager := adViewManager.New(linkStore, clickStore, userStore, transactor)
 

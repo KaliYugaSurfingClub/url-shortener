@@ -18,13 +18,6 @@ type Link struct {
 	CreatedAt      time.Time
 }
 
-type Order int8
-
-const (
-	Asc Order = iota
-	Desc
-)
-
 type LinkSortBy int8
 
 const (
@@ -55,11 +48,6 @@ const (
 	ConstraintWith
 	ConstraintWithout
 )
-
-type Pagination struct {
-	Page int64
-	Size int64
-}
 
 type LinkFilter struct {
 	Type        LinkType

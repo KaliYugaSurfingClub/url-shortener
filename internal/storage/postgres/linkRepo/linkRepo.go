@@ -11,6 +11,7 @@ import (
 	"shortener/internal/core/port"
 	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/transaction"
+	"shortener/internal/utils"
 	"time"
 )
 
@@ -24,22 +25,32 @@ func New(db *pgxpool.Pool) *LinkRepo {
 	return &LinkRepo{db: transaction.NewQueries(db)}
 }
 
-func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error) {
-	const op = "storage.postgres.LinkRepo.GetActiveByAlias"
+func (r *LinkRepo) GetActiveByAlias(ctx context.Context, alias string) (_ *model.Link, err error) {
+	defer utils.WithinOp("storage.postgres.LinkRepo.GetActiveByAlias", &err)
 
 	query := activeOnly(`SELECT * FROM link WHERE alias=$1`)
+	return r.getLink(ctx, query, alias)
+}
 
-	row := r.db.QueryRow(ctx, query, alias)
-	link, err := linkFromRow(row)
+func (r *LinkRepo) GetById(ctx context.Context, id int64) (_ *model.Link, err error) {
+	defer utils.WithinOp("storage.postgres.LinkRepo.GetById", &err)
 
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
+	query := `SELECT * FROM link WHERE id=$1`
+	return r.getLink(ctx, query, id)
+}
 
-	return link, nil
+func (r *LinkRepo) AliasExists(ctx context.Context, alias string) (_ bool, err error) {
+	defer utils.WithinOp("storage.postgres.LinkRepo.AliasExists", &err)
+
+	query := `SELECT EXISTS (SELECT 1 FROM link WHERE alias=$1)`
+	return r.exists(ctx, query, alias)
+}
+
+func (r *LinkRepo) CustomNameExists(ctx context.Context, customName string, userId int64) (_ bool, err error) {
+	defer utils.WithinOp("storage.postgres.LinkRepo.CustomNameExists", &err)
+
+	query := `SELECT EXISTS (SELECT 1 FROM link WHERE custom_name=$1 AND created_by=$2)`
+	return r.exists(ctx, query, customName, userId)
 }
 
 func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
@@ -73,6 +84,8 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.G
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		link, err := linkFromRow(rows)
 
@@ -84,36 +97,6 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.G
 	}
 
 	return links, nil
-}
-
-func (r *LinkRepo) AliasExists(ctx context.Context, alias string) (bool, error) {
-	const op = "storage.postgres.LinkRepo.AliasExists"
-
-	query := `SELECT EXISTS (SELECT 1 FROM link WHERE alias=$1)`
-
-	var exists bool
-	err := r.db.QueryRow(ctx, query, alias).Scan(&exists)
-
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return exists, nil
-}
-
-func (r *LinkRepo) CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error) {
-	const op = "storage.postgres.LinkRepo.CustomNameExists"
-
-	query := `SELECT EXISTS (SELECT 1 FROM link WHERE custom_name=$1 AND created_by = $2)`
-
-	var exists bool
-	err := r.db.QueryRow(ctx, query, customName, userId).Scan(&exists)
-
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return exists, nil
 }
 
 func (r *LinkRepo) Save(ctx context.Context, link model.Link) (*model.Link, error) {
@@ -159,4 +142,28 @@ func (r *LinkRepo) UpdateLastAccess(ctx context.Context, id int64, timestamp tim
 	}
 
 	return nil
+}
+
+func (r *LinkRepo) getLink(ctx context.Context, query string, args ...any) (*model.Link, error) {
+	link, err := linkFromRow(r.db.QueryRow(ctx, query, args...))
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, core.ErrLinkNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return link, nil
+}
+
+func (r *LinkRepo) exists(ctx context.Context, query string, args ...any) (bool, error) {
+	var exists bool
+
+	err := r.db.QueryRow(ctx, query, args...).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

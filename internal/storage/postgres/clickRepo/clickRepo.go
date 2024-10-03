@@ -42,6 +42,50 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 	return id, nil
 }
 
+func (r *ClickRepo) GetCountByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) (int64, error) {
+	const op = "storage.postgres.ClickRepo.GetCountByLinkId"
+
+	query := `SELECT COUNT(*) FROM click WHERE link_id = $1`
+
+	var totalCount int64
+	err := r.db.QueryRow(ctx, query, linkId).Scan(&totalCount)
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return totalCount, nil
+}
+
+func (r *ClickRepo) GetByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) ([]*model.Click, error) {
+	const op = "storage.postgres.ClickRepo.GetByLinkId"
+
+	query := build(`SELECT * FROM click WHERE link_id = $1`).
+		Paginate(params.Pagination).
+		String()
+
+	rows, err := r.db.Query(ctx, query, linkId)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	defer rows.Close()
+
+	clicks := make([]*model.Click, 0)
+
+	for rows.Next() {
+		click, err := clickFromRow(rows)
+
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		clicks = append(clicks, click)
+	}
+
+	return clicks, nil
+}
+
 func (r *ClickRepo) UpdateStatus(ctx context.Context, clickId int64, status model.AdStatus) error {
 	const op = "storage.postgres.ClickRepo.UpdateStatus"
 

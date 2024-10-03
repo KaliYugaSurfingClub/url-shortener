@@ -31,7 +31,9 @@ func New(storage port.LinkStorage, generator port.Generator, triesToGenerate int
 	}, nil
 }
 
-func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (*model.Link, error) {
+func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (_ *model.Link, err error) {
+	defer utils.WithinOp("core.manager.LinkShortener.Short", &err)
+
 	if toSave.Alias == "" {
 		return s.generateAndSave(ctx, &toSave)
 	}
@@ -39,9 +41,7 @@ func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (*model.Li
 	return s.save(ctx, &toSave)
 }
 
-func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (saved *model.Link, err error) {
-	defer utils.WithinOp("core.manager.LinkShortener.save", &err)
-
+func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (*model.Link, error) {
 	if toSave.CustomName == "" {
 		toSave.CustomName = toSave.Alias
 	}
@@ -49,9 +49,7 @@ func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (saved *mo
 	return s.storage.Save(ctx, *toSave)
 }
 
-func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (saved *model.Link, err error) {
-	defer utils.WithinOp("core.manager.LinkShortener.generateAndSave", &err)
-
+func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (*model.Link, error) {
 	noCustomName := toSave.CustomName == ""
 
 	for i := 0; i < s.triesToGenerate; i++ {
@@ -61,7 +59,7 @@ func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link)
 			toSave.CustomName = toSave.Alias
 		}
 
-		saved, err = s.storage.Save(ctx, *toSave)
+		saved, err := s.storage.Save(ctx, *toSave)
 		if err == nil {
 			return saved, nil
 		}

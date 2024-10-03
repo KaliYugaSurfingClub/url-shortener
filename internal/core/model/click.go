@@ -25,3 +25,9 @@ type Click struct {
 	Status   AdStatus
 	Metadata ClickMetadata
 }
+
+type GetClicksParams struct {
+	Pagination Pagination
+	Status     AdStatus
+	Order      Order
+}

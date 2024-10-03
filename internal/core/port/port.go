@@ -8,6 +8,7 @@ import (
 
 type LinkStorage interface {
 	GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error)
+	GetById(ctx context.Context, id int64) (*model.Link, error)
 	AliasExists(ctx context.Context, alias string) (bool, error)
 	CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error)
 	Save(ctx context.Context, link model.Link) (*model.Link, error)
@@ -19,6 +20,8 @@ type LinkStorage interface {
 type ClickStorage interface {
 	Save(ctx context.Context, click *model.Click) (int64, error)
 	UpdateStatus(ctx context.Context, id int64, status model.AdStatus) error
+	GetCountByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) (int64, error)
+	GetByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) ([]*model.Click, error)
 }
 
 type UserStorage interface {
