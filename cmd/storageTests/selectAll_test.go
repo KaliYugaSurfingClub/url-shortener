@@ -85,7 +85,7 @@ package postgres
 //						params: model.GetLinksParams{
 //							Type:        t,
 //							Constraints: c,
-//							SortBy:      col,
+//							By:      col,
 //							Order:       or,
 //						},
 //					})

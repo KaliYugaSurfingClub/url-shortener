@@ -18,8 +18,8 @@ func New(linkStorage port.LinkStorage) *LinkManager {
 }
 
 // todo duplicate 1
-func (m *LinkManager) GetUsersLinks(ctx context.Context, userId int64, params model.GetLinksParams) (links []*model.Link, totalCount int64, err error) {
-	defer utils.WithinOp("core.linkManager.GetUsersLinks", &err)
+func (m *LinkManager) GetUserLinks(ctx context.Context, userId int64, params model.GetLinksParams) (links []*model.Link, totalCount int64, err error) {
+	defer utils.WithinOp("core.linkManager.GetUserLinks", &err)
 
 	if totalCount, err = m.links.GetCountByUserId(ctx, userId, params.Filter); err != nil {
 		return nil, 0, err

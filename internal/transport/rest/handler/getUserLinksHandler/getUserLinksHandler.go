@@ -2,23 +2,24 @@ package getUserLinksHandler
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-chi/render"
-	"github.com/go-ozzo/ozzo-validation"
 	"github.com/thoas/go-funk"
 	"net/http"
+	"net/url"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
 	"shortener/internal/transport/rest/response"
-	"shortener/internal/utils/valkit"
+	"strconv"
 )
 
-type request struct {
-	Type        string `json:"type,omitempty"`
-	Constraints string `json:"constraints,omitempty"`
-	SortBy      string `json:"sortBy"`
-	Order       string `json:"order"`
-	Page        int64  `json:"page"`
-	Size        int64  `json:"size"`
+type provider interface {
+	GetUserLinks(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, int64, error)
+}
+
+type Handler struct {
+	provider        provider
+	defaultPageSize int64
 }
 
 type data struct {
@@ -26,75 +27,70 @@ type data struct {
 	Links      []response.Link `json:"links"`
 }
 
-type provider interface {
-	GetUsersLinks(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, int64, error)
-}
-
-func New(provider provider) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
-
-		userId, _ := mw.ExtractUserID(r.Context())
-
-		params, err := paramsFromRequest(r)
-		if err != nil {
-			log.Error("invalid request", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewError(err))
-			return
-		}
-
-		links, totalCount, err := provider.GetUsersLinks(r.Context(), userId, *params)
-		if err != nil {
-			log.Error("cannot get user links", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewInternalError())
-			return
-		}
-
-		render.JSON(w, r, response.NewOk(data{
-			TotalCount: totalCount,
-			Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
-		}))
+func New(provider provider, defaultPageSize int64) *Handler {
+	return &Handler{
+		provider:        provider,
+		defaultPageSize: defaultPageSize,
 	}
 }
 
-func paramsFromRequest(r *http.Request) (*model.GetLinksParams, error) {
+func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	var req request
+	log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
 
-	if err := render.DecodeJSON(r.Body, &req); err != nil {
-		return nil, err
+	userId, _ := mw.ExtractUserID(r.Context())
+
+	params, err := h.paramsFromQuery(r.URL.Query())
+	if err != nil {
+		log.Error("invalid url params", mw.ErrAttr(err))
+		render.JSON(w, r, response.NewError(err))
+		return
 	}
 
-	if err := req.validate(); err != nil {
-		return nil, err
+	links, totalCount, err := h.provider.GetUserLinks(r.Context(), userId, *params)
+	if err != nil {
+		log.Error("cannot get user links", mw.ErrAttr(err))
+		render.JSON(w, r, response.NewInternalError())
+		return
 	}
 
-	return &model.GetLinksParams{
-		Filter: model.LinkFilter{
-			Type:        types[req.Type],
-			Constraints: constraints[req.Constraints],
-		},
-		Sort: model.LinkSort{
-			SortBy: sortBy[req.SortBy],
-			Order:  order[req.Order],
-		},
-		Pagination: model.Pagination{
-			Page: req.Page,
-			Size: req.Size,
-		},
-	}, nil
+	render.JSON(w, r, response.NewOk(data{
+		TotalCount: totalCount,
+		Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
+	}))
 }
 
-func (r *request) validate() error {
-	return validation.ValidateStruct(r,
-		validation.Field(&r.Type, validation.By(valkit.ContainsInMap(types))),
-		validation.Field(&r.Constraints, validation.By(valkit.ContainsInMap(constraints))),
-		validation.Field(&r.SortBy, validation.By(valkit.ContainsInMap(sortBy))),
-		validation.Field(&r.Order, validation.By(valkit.ContainsInMap(order))),
-		validation.Field(&r.Page, validation.By(valkit.IsPositive())),
-		validation.Field(&r.Size, validation.By(valkit.IsPositive())),
-	)
+func (h *Handler) paramsFromQuery(query url.Values) (*model.GetLinksParams, error) {
+	var ok bool
+
+	params := &model.GetLinksParams{}
+
+	if params.Filter.Type, ok = types[query.Get("type")]; !ok {
+		return nil, fmt.Errorf("invalid query type")
+	}
+
+	if params.Filter.Constraints, ok = constraints[query.Get("constraints")]; !ok {
+		return nil, fmt.Errorf("invalid query constraints")
+	}
+
+	if params.Sort.By, ok = sortBy[query.Get("sort_by")]; !ok {
+		return nil, fmt.Errorf("invalid query type")
+	}
+
+	if params.Sort.Order, ok = order[query.Get("order")]; !ok {
+		return nil, fmt.Errorf("invalid query type")
+	}
+
+	if params.Pagination.Page, ok = positiveIntFromUrl(query, "page", 1); !ok {
+		return nil, fmt.Errorf("invalid query type") //todo validation error
+	}
+
+	if params.Pagination.Size, ok = positiveIntFromUrl(query, "size", h.defaultPageSize); !ok {
+		return nil, fmt.Errorf("invalid query type")
+	}
+
+	return params, nil
 }
 
 var types = map[string]model.LinkType{
@@ -116,15 +112,35 @@ var constraints = map[string]model.LinkConstraints{
 }
 
 var sortBy = map[string]model.LinkSortBy{
-	"createdAt":       model.SortByCreatedAt,
-	"customName":      model.SortByCustomName,
-	"clicksCount":     model.SortByClicksCount,
-	"lastAccess":      model.SortByLastAccess,
-	"expirationDate":  model.SortByExpirationDate,
-	"leftClicksCount": model.SortByLeftClicksCount,
+	"":                 model.SortByCreatedAt,
+	"created_at":       model.SortByCreatedAt,
+	"custom_name":      model.SortByCustomName,
+	"clicks_count":     model.SortByClicksCount,
+	"last_access":      model.SortByLastAccess,
+	"expiration_date":  model.SortByExpirationDate,
+	"left_clicksCount": model.SortByLeftClicksCount,
 }
 
 var order = map[string]model.Order{
+	"":     model.Asc,
 	"asc":  model.Asc,
 	"desc": model.Desc,
+}
+
+func positiveIntFromUrl(query url.Values, varName string, defaultValue int64) (int64, bool) {
+	str := query.Get(varName)
+	if str == "" {
+		str = strconv.FormatInt(defaultValue, 10)
+	}
+
+	num, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, false
+	}
+
+	if num <= 0 {
+		return 0, false
+	}
+
+	return int64(num), true
 }

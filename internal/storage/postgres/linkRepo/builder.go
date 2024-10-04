@@ -33,7 +33,7 @@ func (b *Builder) Filter(params model.LinkFilter) *Builder {
 
 func (b *Builder) Sort(params model.LinkSort) *Builder {
 	b.Query.WriteString(" ORDER BY ")
-	b.Query.WriteString(sortBy[params.SortBy])
+	b.Query.WriteString(sortBy[params.By])
 	b.Query.WriteString(OrderToStr(params.Order))
 
 	return b

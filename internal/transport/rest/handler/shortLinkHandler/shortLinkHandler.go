@@ -24,69 +24,79 @@ type request struct {
 	ExpirationDate *time.Time `json:"expirationDate,omitempty"`
 }
 
+func (r *request) ToModel(userId int64) *model.Link {
+	return &model.Link{
+		CreatedBy:      userId,
+		Original:       r.Original,
+		Alias:          r.Alias,
+		CustomName:     r.CustomName,
+		ExpirationDate: r.ExpirationDate,
+		ClicksToExpire: r.ClicksToExpire,
+	}
+}
+
 type LinkShortener interface {
 	Short(ctx context.Context, link model.Link) (*model.Link, error)
 }
 
-func New(shortener LinkShortener) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log := mw.ExtractLog(r.Context(), "transport.Rest.ShortLink")
+type Handler struct {
+	shortener        LinkShortener
+	OriginalMaxLen   int
+	AliasMaxLen      int
+	CustomNameMaxLen int
+}
 
-		link, err := linkFromRequest(r)
-		if err != nil {
-			log.Error("invalid request", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewError(err))
-			return
-		}
-
-		shorted, err := shortener.Short(r.Context(), *link)
-		if errors.Is(err, core.ErrAliasExists) { //todo
-			render.JSON(w, r, response.NewError(core.ErrAliasExists))
-			return
-		}
-		if errors.Is(err, core.ErrCustomNameExists) {
-			render.JSON(w, r, response.NewError(core.ErrAliasExists))
-			return
-		}
-		if err != nil {
-			log.Error("cannot save link", mw.ErrAttr(err))
-			render.JSON(w, r, response.NewInternalError())
-			return
-		}
-
-		render.JSON(w, r, response.NewOk(response.LinkFromModel(shorted)))
+func New(shortener LinkShortener, OriginalMaxLen, AliasMaxLen, CustomLenMaxLen int) *Handler {
+	return &Handler{
+		shortener:        shortener,
+		OriginalMaxLen:   OriginalMaxLen,
+		AliasMaxLen:      AliasMaxLen,
+		CustomNameMaxLen: CustomLenMaxLen,
 	}
 }
 
-func linkFromRequest(r *http.Request) (*model.Link, error) {
+func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
+	log := mw.ExtractLog(r.Context(), "transport.Rest.ShortLink")
 	userId, _ := mw.ExtractUserID(r.Context())
 
 	req := &request{}
-	if err := render.DecodeJSON(r.Body, req); err != nil {
-		return nil, err
+	if err := render.Decode(r, req); err != nil {
+		log.Info("cannot decode body", mw.ErrAttr(err))
+		render.JSON(w, r, response.NewError(err))
+		return
 	}
 
-	if err := req.validate(); err != nil {
-		return nil, err
+	if err := h.validate(req); err != nil {
+		log.Info("invalid request", mw.ErrAttr(err))
+		render.JSON(w, r, response.NewError(err)) //todo validation error
+		return
 	}
 
-	return &model.Link{
-		CreatedBy:      userId,
-		Original:       req.Original,
-		Alias:          req.Alias,
-		CustomName:     req.CustomName,
-		ExpirationDate: req.ExpirationDate,
-		ClicksToExpire: req.ClicksToExpire,
-	}, nil
+	shorted, err := h.shortener.Short(r.Context(), *req.ToModel(userId))
+	if errors.Is(err, core.ErrAliasExists) {
+		render.JSON(w, r, response.NewError(core.ErrAliasExists))
+		return
+	}
+	if errors.Is(err, core.ErrCustomNameExists) {
+		render.JSON(w, r, response.NewError(core.ErrAliasExists))
+		return
+	}
+	if err != nil {
+		log.Error("cannot save link", mw.ErrAttr(err))
+		render.JSON(w, r, response.NewInternalError())
+		return
+	}
+
+	render.JSON(w, r, response.NewOk(response.LinkFromModel(shorted)))
 }
 
-func (r *request) validate() error {
+func (h *Handler) validate(r *request) error {
 	return validation.ValidateStruct(r,
-		validation.Field(&r.Original, validation.Required, is.URL),
-		validation.Field(&r.Alias, validation.Length(1, 255)),      //todo learn from db
-		validation.Field(&r.CustomName, validation.Length(1, 255)), //todo learn from db
+		validation.Field(&r.Original, validation.Required, validation.Length(1, h.OriginalMaxLen), is.URL),
+		validation.Field(&r.Alias, validation.Length(1, h.AliasMaxLen)),
+		validation.Field(&r.CustomName, validation.Length(1, h.CustomNameMaxLen)),
 		validation.Field(&r.ClicksToExpire, validation.By(valkit.IsPositive())),
 		validation.Field(&r.ExpirationDate, validation.By(valkit.IsFutureDate())),
 	)

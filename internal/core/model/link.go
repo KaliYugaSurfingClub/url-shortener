@@ -55,8 +55,8 @@ type LinkFilter struct {
 }
 
 type LinkSort struct {
-	SortBy LinkSortBy
-	Order  Order
+	By    LinkSortBy
+	Order Order
 }
 
 type GetLinksParams struct {

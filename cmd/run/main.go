@@ -12,7 +12,6 @@ import (
 	"shortener/internal/core/generator"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
-	"shortener/internal/storage/postgres/clickRepo"
 	"shortener/internal/storage/postgres/linkRepo"
 	"shortener/internal/transport/rest/handler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
@@ -46,13 +45,13 @@ func main() {
 	defer db.Close()
 
 	linkStore := linkRepo.New(db)
-	clickStore := clickRepo.New(db)
+	//clickStore := clickRepo.New(db)
 	//userStore := &FakeUserStore{}
 	//transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
-	linkM := linkManager.New(linkStore, clickStore)
+	linkM := linkManager.New(linkStore)
 
 	//adViewManager := adViewManager.New(linkStore, clickStore, userStore, transactor)
 
@@ -74,8 +73,8 @@ func main() {
 
 	r.Route("/link", func(r chi.Router) {
 		r.Use(mw.CheckAuth(jwtOpt))
-		r.Post("/", shortLinkHandler.New(aliasManager))
-		r.Get("/", getUserLinksHandler.New(linkM))
+		r.Post("/", shortLinkHandler.New(aliasManager, 255, 255, 255).Handler)
+		r.Get("/", getUserLinksHandler.New(linkM, 10).Handler)
 	})
 
 	server := &http.Server{
