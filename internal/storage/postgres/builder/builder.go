@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type Builder interface {
+	Paginate(model.Pagination) Builder
+	String() string
+}
+
 type BaseBuilder struct {
 	Query strings.Builder
 }
@@ -21,8 +26,7 @@ func (b *BaseBuilder) String() string {
 	return b.Query.String()
 }
 
-// todo
-func (b *BaseBuilder) Paginate(params model.Pagination) *BaseBuilder {
+func (b *BaseBuilder) Paginate(params model.Pagination) Builder {
 	offset := (params.Page - 1) * params.Size
 	limit := params.Size
 

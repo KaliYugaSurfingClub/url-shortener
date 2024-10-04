@@ -56,7 +56,7 @@ func (r *LinkRepo) CustomNameExists(ctx context.Context, customName string, user
 func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
 	const op = "storage.postgres.LinkRepo.GetCountByUserId"
 
-	query := build(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params).String()
+	query := newBuilder(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params).String()
 
 	var totalCount int64
 	err := r.db.QueryRow(ctx, query, userId).Scan(&totalCount)
@@ -68,10 +68,11 @@ func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params mo
 	return totalCount, nil
 }
 
+// todo
 func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
 	const op = "storage.postgres.LinkRepo.GetByUserId"
 
-	query := build(`SELECT * FROM link WHERE created_by = $1`).
+	query := newBuilder(`SELECT * FROM link WHERE created_by = $1`).
 		Filter(params.Filter).
 		Sort(params.Sort).
 		Paginate(params.Pagination).

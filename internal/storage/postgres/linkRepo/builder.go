@@ -2,23 +2,20 @@ package linkRepo
 
 import (
 	"shortener/internal/core/model"
+	"shortener/internal/storage/postgres/builder"
 	"slices"
-	"strconv"
 	"strings"
 )
 
-type builder struct {
-	query strings.Builder
+type Builder struct {
+	*builder.BaseBuilder
 }
 
-func build(baseQuery string) *builder {
-	res := new(builder)
-	res.query.WriteString(baseQuery)
-
-	return res
+func newBuilder(baseQuery string) *Builder {
+	return &Builder{builder.New(baseQuery)}
 }
 
-func (b *builder) Filter(params model.LinkFilter) *builder {
+func (b *Builder) Filter(params model.LinkFilter) *Builder {
 	conditions := make([]string, 0)
 
 	conditions = append(conditions, typeSql[params.Type])
@@ -27,35 +24,23 @@ func (b *builder) Filter(params model.LinkFilter) *builder {
 	conditions = slices.DeleteFunc(conditions, func(c string) bool { return c == "" })
 
 	if len(conditions) > 0 {
-		b.query.WriteString(" AND ")
-		b.query.WriteString(strings.Join(conditions, " AND "))
+		b.Query.WriteString(" AND ")
+		b.Query.WriteString(strings.Join(conditions, " AND "))
 	}
 
 	return b
 }
 
-func (b *builder) Sort(params model.LinkSort) *builder {
-	b.query.WriteString(" ORDER BY ")
-	b.query.WriteString(sortBy[params.SortBy])
-	b.query.WriteString(OrderToStr(params.Order))
+func (b *Builder) Sort(params model.LinkSort) *Builder {
+	b.Query.WriteString(" ORDER BY ")
+	b.Query.WriteString(sortBy[params.SortBy])
+	b.Query.WriteString(OrderToStr(params.Order))
 
 	return b
 }
 
-func (b *builder) Paginate(params model.Pagination) *builder {
-	offset := (params.Page - 1) * params.Size
-	limit := params.Size
-
-	b.query.WriteString(" LIMIT ")
-	b.query.WriteString(strconv.FormatInt(limit, 10))
-	b.query.WriteString(" OFFSET ")
-	b.query.WriteString(strconv.FormatInt(offset, 10))
-
-	return b
-}
-
-func (b *builder) String() string {
-	return b.query.String()
+func (b *Builder) String() string {
+	return b.Query.String()
 }
 
 func activeOnly(baseQuery string) string {

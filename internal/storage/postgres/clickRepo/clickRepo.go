@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
+	"shortener/internal/storage/postgres/builder"
 	"shortener/internal/storage/transaction"
 )
 
@@ -57,12 +58,11 @@ func (r *ClickRepo) GetCountByLinkId(ctx context.Context, linkId int64, params m
 	return totalCount, nil
 }
 
+// todo
 func (r *ClickRepo) GetByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) ([]*model.Click, error) {
 	const op = "storage.postgres.ClickRepo.GetByLinkId"
 
-	query := build(`SELECT * FROM click WHERE link_id = $1`).
-		Paginate(params.Pagination).
-		String()
+	query := builder.New(`SELECT * FROM click WHERE link_id = $1`).Paginate(params.Pagination).String()
 
 	rows, err := r.db.Query(ctx, query, linkId)
 	if err != nil {

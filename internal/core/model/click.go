@@ -28,6 +28,5 @@ type Click struct {
 
 type GetClicksParams struct {
 	Pagination Pagination
-	Status     AdStatus
 	Order      Order
 }
