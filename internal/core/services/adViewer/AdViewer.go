@@ -28,7 +28,7 @@ func New(
 	}
 }
 
-func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata *model.ClickMetadata) (link *model.Link, clickId int64, err error) {
+func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata model.ClickMetadata) (link *model.Link, clickId int64, err error) {
 	if alias == "" {
 		return nil, -1, errors.New("alias can not be empty")
 	}
@@ -46,7 +46,7 @@ func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata *mode
 		clickToSave := &model.Click{
 			LinkId:   link.Id,
 			Status:   model.AdStarted,
-			Metadata: *metadata,
+			Metadata: metadata,
 		}
 
 		clickId, err = v.clicks.Save(ctx, clickToSave)

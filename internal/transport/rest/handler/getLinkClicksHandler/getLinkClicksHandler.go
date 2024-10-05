@@ -2,10 +2,12 @@ package getLinkClicksHandler
 
 import (
 	"context"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/thoas/go-funk"
 	"net/http"
+	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
 	"shortener/internal/transport/rest/request"
@@ -14,12 +16,11 @@ import (
 )
 
 type provider interface {
-	GetLinkClicks(ctx context.Context, linkId int64, params model.GetClicksParams) ([]*model.Click, int64, error)
+	GetLinkClicks(ctx context.Context, linkId int64, userId int64, params model.GetClicksParams) ([]*model.Click, int64, error)
 }
 
 type Handler struct {
-	provider        provider
-	defaultPageSize int64
+	provider provider
 }
 
 type data struct {
@@ -27,10 +28,9 @@ type data struct {
 	Clicks     []response.Click
 }
 
-func New(provider provider, defaultPageSize int64) *Handler {
+func New(provider provider) *Handler {
 	return &Handler{
-		provider:        provider,
-		defaultPageSize: defaultPageSize,
+		provider: provider,
 	}
 }
 
@@ -38,6 +38,8 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	log := mw.ExtractLog(r.Context(), "transport.rest.GetLinkClicks")
+
+	userId, _ := mw.ExtractUserID(r.Context())
 
 	params := &UrlParams{}
 	if err := request.DecodeURLParams(params, r.URL.Query()); err != nil {
@@ -54,7 +56,12 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 
 	linkId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 
-	clicks, totalCount, err := h.provider.GetLinkClicks(r.Context(), linkId, params.ToModel())
+	clicks, totalCount, err := h.provider.GetLinkClicks(r.Context(), linkId, userId, params.ToModel())
+	if errors.Is(err, core.ErrLinkNotFound) {
+		log.Info("link not found", mw.ErrAttr(err))
+		render.JSON(w, r, response.WithError(core.ErrLinkNotFound))
+		return
+	}
 	if err != nil {
 		log.Error("cannot get user links", mw.ErrAttr(err))
 		render.JSON(w, r, response.WithInternalError())

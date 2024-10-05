@@ -39,18 +39,13 @@ func (r *LinkRepo) GetById(ctx context.Context, id int64) (_ *model.Link, err er
 	return r.getLink(ctx, query, id)
 }
 
-func (r *LinkRepo) AliasExists(ctx context.Context, alias string) (_ bool, err error) {
-	defer utils.WithinOp("storage.postgres.LinkRepo.AliasExists", &err)
+func (r *LinkRepo) DoesLinkBelongUser(ctx context.Context, linkId int64, userId int64) (_ bool, err error) {
+	defer utils.WithinOp("storage.postgres.LinkRepo.DoesLinkBelongUser", &err)
 
-	query := `SELECT EXISTS (SELECT 1 FROM link WHERE alias=$1)`
-	return r.exists(ctx, query, alias)
-}
+	query := `SELECT * FROM link WHERE created_by = $1 AND id = $2`
 
-func (r *LinkRepo) CustomNameExists(ctx context.Context, customName string, userId int64) (_ bool, err error) {
-	defer utils.WithinOp("storage.postgres.LinkRepo.CustomNameExists", &err)
-
-	query := `SELECT EXISTS (SELECT 1 FROM link WHERE custom_name=$1 AND created_by=$2)`
-	return r.exists(ctx, query, customName, userId)
+	link, err := r.getLink(ctx, query, userId, linkId)
+	return link != nil, err
 }
 
 func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
@@ -156,15 +151,4 @@ func (r *LinkRepo) getLink(ctx context.Context, query string, args ...any) (*mod
 	}
 
 	return link, nil
-}
-
-func (r *LinkRepo) exists(ctx context.Context, query string, args ...any) (bool, error) {
-	var exists bool
-
-	err := r.db.QueryRow(ctx, query, args...).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-
-	return exists, nil
 }

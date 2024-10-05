@@ -9,12 +9,11 @@ import (
 type LinkStorage interface {
 	GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error)
 	GetById(ctx context.Context, id int64) (*model.Link, error)
-	AliasExists(ctx context.Context, alias string) (bool, error)
-	CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error)
 	Save(ctx context.Context, link model.Link) (*model.Link, error)
 	UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error
 	GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error)
 	GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error)
+	DoesLinkBelongUser(ctx context.Context, linkId int64, userId int64) (_ bool, err error)
 }
 
 type ClickStorage interface {

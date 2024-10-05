@@ -15,26 +15,6 @@ import (
 	"time"
 )
 
-// todo add save with lifetime
-type request struct {
-	Original       string     `json:"original"`
-	Alias          string     `json:"alias"`
-	CustomName     string     `json:"customName"`
-	ClicksToExpire *int64     `json:"clicksToExpire,omitempty"`
-	ExpirationDate *time.Time `json:"expirationDate,omitempty"`
-}
-
-func (r *request) ToModel(userId int64) *model.Link {
-	return &model.Link{
-		CreatedBy:      userId,
-		Original:       r.Original,
-		Alias:          r.Alias,
-		CustomName:     r.CustomName,
-		ExpirationDate: r.ExpirationDate,
-		ClicksToExpire: r.ClicksToExpire,
-	}
-}
-
 type LinkShortener interface {
 	Short(ctx context.Context, link model.Link) (*model.Link, error)
 }
@@ -64,7 +44,7 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	req := &request{}
 	if err := render.Decode(r, req); err != nil {
 		log.Info("cannot decode body", mw.ErrAttr(err))
-		render.JSON(w, r, response.WithError(err))
+		render.JSON(w, r, response.WithError(err)) //todo
 		return
 	}
 
@@ -90,6 +70,26 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, response.WithOk(response.LinkFromModel(shorted)))
+}
+
+// todo add save with lifetime
+type request struct {
+	Original       string     `json:"original"`
+	Alias          string     `json:"alias"`
+	CustomName     string     `json:"customName"`
+	ClicksToExpire *int64     `json:"clicksToExpire,omitempty"`
+	ExpirationDate *time.Time `json:"expirationDate,omitempty"`
+}
+
+func (r *request) ToModel(userId int64) *model.Link {
+	return &model.Link{
+		CreatedBy:      userId,
+		Original:       r.Original,
+		Alias:          r.Alias,
+		CustomName:     r.CustomName,
+		ExpirationDate: r.ExpirationDate,
+		ClicksToExpire: r.ClicksToExpire,
+	}
 }
 
 func (h *Handler) validate(r *request) error {

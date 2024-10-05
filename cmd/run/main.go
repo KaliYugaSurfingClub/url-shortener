@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"shortener/internal/core/generator"
-	"shortener/internal/core/services/clickManager"
+	"shortener/internal/core/model"
+	"shortener/internal/core/services/adViewer"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
 	"shortener/internal/storage/postgres/clickRepo"
 	"shortener/internal/storage/postgres/linkRepo"
+	"shortener/internal/storage/transaction"
 	"shortener/internal/transport/rest/handler"
 	"shortener/internal/transport/rest/handler/getLinkClicksHandler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
@@ -49,15 +51,17 @@ func main() {
 
 	linkStore := linkRepo.New(db)
 	clickStore := clickRepo.New(db)
-	//userStore := &FakeUserStore{}
-	//transactor := transaction.NewTransactor(db)
+	userStore := &FakeUserStore{}
+	transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
-	linkM := linkManager.New(linkStore)
-	clickM := clickManager.New(clickStore)
+	manager := linkManager.New(linkStore, clickStore)
 
-	//adViewManager := adViewManager.New(linkStore, clickStore, userStore, transactor)
+	adViewManager := adViewer.New(linkStore, clickStore, userStore, transactor)
+
+	_, _, err = adViewManager.RecordClick(context.Background(), "abc", model.ClickMetadata{})
+	fmt.Println(err)
 
 	jwtOpt := mw.JwtOptions{
 		UserIdKey:  "id",
@@ -78,8 +82,8 @@ func main() {
 	r.Route("/links", func(r chi.Router) {
 		r.Use(mw.CheckAuth(jwtOpt))
 		r.Post("/", shortLinkHandler.New(aliasManager, 255, 255, 255).Handler)
-		r.Get("/", getUserLinksHandler.New(linkM).Handler)
-		r.Get("/{id}/clicks", getLinkClicksHandler.New(clickM, 10).Handler)
+		r.Get("/", getUserLinksHandler.New(manager).Handler)
+		r.Get("/{id}/clicks", getLinkClicksHandler.New(manager).Handler)
 	})
 
 	server := &http.Server{

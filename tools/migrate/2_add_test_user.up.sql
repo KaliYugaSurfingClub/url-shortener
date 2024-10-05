@@ -1,0 +1,1 @@
+INSERT INTO person (username, email, password_hash) VALUES ('test', 'test', 'test')

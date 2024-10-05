@@ -214,3 +214,7 @@ func (s *linkStorage) GetCountByUserId(ctx context.Context, userId int64, params
 func (s *linkStorage) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
 	panic("implement me")
 }
+
+func (s *linkStorage) GetById(ctx context.Context, id int64) (*model.Link, error) {
+	panic("implement me")
+}
