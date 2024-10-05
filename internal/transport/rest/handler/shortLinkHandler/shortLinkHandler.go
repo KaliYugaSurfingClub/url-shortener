@@ -70,7 +70,7 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.validate(req); err != nil {
 		log.Info("invalid request", mw.ErrAttr(err))
-		render.JSON(w, r, response.WithValidationErrors(err.(validation.Errors)))
+		render.JSON(w, r, response.WithValidationErrors(err))
 		return
 	}
 

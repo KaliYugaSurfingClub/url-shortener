@@ -24,7 +24,7 @@ func (e ValidationError) Error() string {
 	return e.Msg
 }
 
-func NewWithValidationError(filed string, err error) ValidationError {
+func NewValidationError(filed string, err error) ValidationError {
 	return ValidationError{Filed: filed, Msg: err.Error()}
 }
 
@@ -49,11 +49,16 @@ func WithInternalError() Response {
 	}
 }
 
-func WithValidationErrors(errs validation.Errors) (resp Response) {
+func WithValidationErrors(errs error) (resp Response) {
+	validationErrors, ok := errs.(validation.Errors)
+	if !ok {
+		panic("take not validation error")
+	}
+
 	return Response{
 		Status:           StatusError,
 		ErrorCode:        ValidationErrorCode,
-		ValidationErrors: funk.Map(errs, NewWithValidationError).([]ValidationError),
+		ValidationErrors: funk.Map(validationErrors, NewValidationError).([]ValidationError),
 	}
 }
 
