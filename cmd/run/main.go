@@ -71,14 +71,14 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(mw.NewLogger(log))
 
-	r.Route("/user", func(r chi.Router) {
+	r.Route("/users", func(r chi.Router) {
 		r.Get("/login", handler.Login(jwtOpt, 24*time.Hour))
 	})
 
-	r.Route("/link", func(r chi.Router) {
+	r.Route("/links", func(r chi.Router) {
 		r.Use(mw.CheckAuth(jwtOpt))
 		r.Post("/", shortLinkHandler.New(aliasManager, 255, 255, 255).Handler)
-		r.Get("/", getUserLinksHandler.New(linkM, 10).Handler)
+		r.Get("/", getUserLinksHandler.New(linkM).Handler)
 		r.Get("/{id}/clicks", getLinkClicksHandler.New(clickM, 10).Handler)
 	})
 

@@ -18,6 +18,7 @@ func New(linkStorage port.LinkStorage) *LinkManager {
 }
 
 // todo duplicate 1
+// todo userId in params params is pointer
 func (m *LinkManager) GetUserLinks(ctx context.Context, userId int64, params model.GetLinksParams) (links []*model.Link, totalCount int64, err error) {
 	defer utils.WithinOp("core.linkManager.GetUserLinks", &err)
 

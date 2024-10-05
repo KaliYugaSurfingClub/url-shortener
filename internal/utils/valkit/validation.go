@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/thoas/go-funk"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -27,7 +28,7 @@ func ContainsInMap[V any](acceptable map[string]V) func(value any) error {
 
 func IsPositive() func(value any) error {
 	return func(value any) error {
-		err := fmt.Errorf("should be positive")
+		err := errors.New("should be positive")
 
 		switch v := value.(type) {
 		case int64:
@@ -50,11 +51,27 @@ func IsFutureDate() func(value any) error {
 	return func(value any) error {
 		date, ok := value.(*time.Time)
 		if !ok {
-			return fmt.Errorf("internal error invalid date")
+			return fmt.Errorf("internal error: invalid date")
 		}
 		if date != nil && date.Before(time.Now()) {
 			return fmt.Errorf("must be in the future")
 		}
+		return nil
+	}
+}
+
+func StringNumIn(min int64, max int64) func(value any) error {
+	return func(value any) error {
+		str, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("internal error: invalid string")
+		}
+
+		num, err := strconv.ParseInt(str, 10, 64)
+		if err != nil || num < min || num > max {
+			return fmt.Errorf("should be a integer in [%d,%d]", min, max)
+		}
+
 		return nil
 	}
 }

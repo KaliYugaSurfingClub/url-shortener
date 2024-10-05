@@ -2,14 +2,13 @@ package getLinkClicksHandler
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/thoas/go-funk"
 	"net/http"
-	"net/url"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
+	"shortener/internal/transport/rest/request"
 	"shortener/internal/transport/rest/response"
 	"strconv"
 )
@@ -38,18 +37,24 @@ func New(provider provider, defaultPageSize int64) *Handler {
 func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
+	log := mw.ExtractLog(r.Context(), "transport.rest.GetLinkClicks")
 
-	params, err := h.paramsFromQuery(r.URL.Query())
-	if err != nil {
+	params := &UrlParams{}
+	if err := request.DecodeURLParams(params, r.URL.Query()); err != nil {
+		log.Error("unable to decode URL params", mw.ErrAttr(err))
+		render.JSON(w, r, response.WithInternalError())
+		return
+	}
+
+	if err := params.Validate(); err != nil {
 		log.Error("invalid url params", mw.ErrAttr(err))
-		render.JSON(w, r, response.WithError(err))
+		render.JSON(w, r, response.WithValidationErrors(err))
 		return
 	}
 
 	linkId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 
-	clicks, totalCount, err := h.provider.GetLinkClicks(r.Context(), linkId, params)
+	clicks, totalCount, err := h.provider.GetLinkClicks(r.Context(), linkId, params.ToModel())
 	if err != nil {
 		log.Error("cannot get user links", mw.ErrAttr(err))
 		render.JSON(w, r, response.WithInternalError())
@@ -62,46 +67,18 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-func (h *Handler) paramsFromQuery(query url.Values) (model.GetClicksParams, error) {
-	var ok bool
-
-	params := model.GetClicksParams{}
-
-	if params.Order, ok = order[query.Get("order")]; !ok {
-		return params, fmt.Errorf("invalid query type")
-	}
-
-	if params.Pagination.Page, ok = positiveIntFromUrl(query, "page", 1); !ok {
-		return params, fmt.Errorf("invalid query type")
-	}
-
-	if params.Pagination.Size, ok = positiveIntFromUrl(query, "size", h.defaultPageSize); !ok {
-		return params, fmt.Errorf("invalid query type")
-	}
-
-	return params, nil
+type UrlParams struct {
+	request.OrderDirection
+	request.Pagination
 }
 
-var order = map[string]model.Order{
-	"":     model.Asc,
-	"asc":  model.Asc,
-	"desc": model.Desc,
+func (p *UrlParams) Validate() error {
+	return request.Validate(p, p.OrderRules(), p.PaginationRules())
 }
 
-func positiveIntFromUrl(query url.Values, varName string, defaultValue int64) (int64, bool) {
-	str := query.Get(varName)
-	if str == "" {
-		str = strconv.FormatInt(defaultValue, 10)
+func (p *UrlParams) ToModel() model.GetClicksParams {
+	return model.GetClicksParams{
+		Order:      p.OrderToModel(),
+		Pagination: p.PaginationToModel(),
 	}
-
-	num, err := strconv.Atoi(str)
-	if err != nil {
-		return 0, false
-	}
-
-	if num <= 0 {
-		return 0, false
-	}
-
-	return int64(num), true
 }

@@ -3,8 +3,10 @@ package mw
 import (
 	"context"
 	"errors"
+	"github.com/go-chi/render"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"shortener/internal/transport/rest/response"
 )
 
 type JwtOptions struct {
@@ -19,9 +21,9 @@ func CheckAuth(options JwtOptions) func(http.Handler) http.Handler {
 			log := ExtractLog(r.Context(), "transport.rest.mw.Jwt")
 
 			cookie, err := r.Cookie(options.CookieName)
-			if err != nil || errors.Is(err, http.ErrNoCookie) {
+			if errors.Is(err, http.ErrNoCookie) {
 				log.Error("Parse cookie:", ErrAttr(err))
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				render.JSON(w, r, response.WithError(errors.New("not auth"))) //todo
 				return
 			}
 
@@ -32,13 +34,13 @@ func CheckAuth(options JwtOptions) func(http.Handler) http.Handler {
 
 			if err != nil {
 				log.Error("Parse token:", ErrAttr(err))
-				http.Error(w, "Parse token error", http.StatusUnauthorized)
+				render.JSON(w, r, response.WithInternalError())
 				return
 			}
 
 			if !token.Valid {
 				log.Error("Invalid token")
-				http.Error(w, "Invalid token error", http.StatusUnauthorized)
+				render.JSON(w, r, response.WithInternalError())
 				return
 			}
 
