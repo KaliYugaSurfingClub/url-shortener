@@ -35,6 +35,8 @@ CREATE TABLE link(
     UNIQUE (custom_name, created_by)
 );
 
+CREATE TYPE ad_status_enum AS ENUM ('started', 'closed', 'completed');
+
 CREATE TABLE click(
     id BIGSERIAL PRIMARY KEY,
     link_id BIGINT REFERENCES link(id) NOT NULL,
@@ -43,7 +45,7 @@ CREATE TABLE click(
     ip INET NULL,
     access_time TIMESTAMP NOT NULL,
 
-    ad_status SMALLINT NOT NULL CHECK (ad_status IN (0, 1, 2))
+    ad_status ad_status_enum NOT NULL
 );
 
 COMMIT;

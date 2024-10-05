@@ -38,7 +38,6 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
-
 	userId, _ := mw.ExtractUserID(r.Context())
 
 	params, err := h.paramsFromQuery(r.URL.Query())
@@ -48,7 +47,7 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	links, totalCount, err := h.provider.GetUserLinks(r.Context(), userId, *params)
+	links, totalCount, err := h.provider.GetUserLinks(r.Context(), userId, params)
 	if err != nil {
 		log.Error("cannot get user links", mw.ErrAttr(err))
 		render.JSON(w, r, response.WithInternalError())
@@ -61,33 +60,33 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-func (h *Handler) paramsFromQuery(query url.Values) (*model.GetLinksParams, error) {
+func (h *Handler) paramsFromQuery(query url.Values) (model.GetLinksParams, error) {
 	var ok bool
 
-	params := &model.GetLinksParams{}
+	params := model.GetLinksParams{}
 
 	if params.Filter.Type, ok = types[query.Get("type")]; !ok {
-		return nil, fmt.Errorf("invalid query type")
+		return params, fmt.Errorf("invalid query type")
 	}
 
 	if params.Filter.Constraints, ok = constraints[query.Get("constraints")]; !ok {
-		return nil, fmt.Errorf("invalid query constraints")
+		return params, fmt.Errorf("invalid query constraints")
 	}
 
 	if params.Sort.By, ok = sortBy[query.Get("sort_by")]; !ok {
-		return nil, fmt.Errorf("invalid query type")
+		return params, fmt.Errorf("invalid query type")
 	}
 
 	if params.Sort.Order, ok = order[query.Get("order")]; !ok {
-		return nil, fmt.Errorf("invalid query type")
+		return params, fmt.Errorf("invalid query type")
 	}
 
 	if params.Pagination.Page, ok = positiveIntFromUrl(query, "page", 1); !ok {
-		return nil, fmt.Errorf("invalid query type") //todo validation error
+		return params, fmt.Errorf("invalid query type") //todo validation error
 	}
 
 	if params.Pagination.Size, ok = positiveIntFromUrl(query, "size", h.defaultPageSize); !ok {
-		return nil, fmt.Errorf("invalid query type")
+		return params, fmt.Errorf("invalid query type")
 	}
 
 	return params, nil

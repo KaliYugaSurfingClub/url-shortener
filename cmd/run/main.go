@@ -10,10 +10,13 @@ import (
 	"net/http"
 	"os"
 	"shortener/internal/core/generator"
+	"shortener/internal/core/services/clickManager"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
+	"shortener/internal/storage/postgres/clickRepo"
 	"shortener/internal/storage/postgres/linkRepo"
 	"shortener/internal/transport/rest/handler"
+	"shortener/internal/transport/rest/handler/getLinkClicksHandler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
 	"shortener/internal/transport/rest/handler/shortLinkHandler"
 	"shortener/internal/transport/rest/mw"
@@ -45,13 +48,14 @@ func main() {
 	defer db.Close()
 
 	linkStore := linkRepo.New(db)
-	//clickStore := clickRepo.New(db)
+	clickStore := clickRepo.New(db)
 	//userStore := &FakeUserStore{}
 	//transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
 	linkM := linkManager.New(linkStore)
+	clickM := clickManager.New(clickStore)
 
 	//adViewManager := adViewManager.New(linkStore, clickStore, userStore, transactor)
 
@@ -75,6 +79,7 @@ func main() {
 		r.Use(mw.CheckAuth(jwtOpt))
 		r.Post("/", shortLinkHandler.New(aliasManager, 255, 255, 255).Handler)
 		r.Get("/", getUserLinksHandler.New(linkM, 10).Handler)
+		r.Get("/{id}/clicks", getLinkClicksHandler.New(clickM, 10).Handler)
 	})
 
 	server := &http.Server{

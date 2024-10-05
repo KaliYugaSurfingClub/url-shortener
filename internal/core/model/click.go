@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-type AdStatus int8
+type AdStatus string
 
 const (
-	AdStarted = iota
-	AdClosed
-	AdCompleted
+	AdStarted   = "started"
+	AdClosed    = "closed"
+	AdCompleted = "completed"
 )
 
 type ClickMetadata struct {
