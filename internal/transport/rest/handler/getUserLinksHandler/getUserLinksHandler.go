@@ -44,18 +44,18 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	params, err := h.paramsFromQuery(r.URL.Query())
 	if err != nil {
 		log.Error("invalid url params", mw.ErrAttr(err))
-		render.JSON(w, r, response.NewError(err))
+		render.JSON(w, r, response.WithError(err))
 		return
 	}
 
 	links, totalCount, err := h.provider.GetUserLinks(r.Context(), userId, *params)
 	if err != nil {
 		log.Error("cannot get user links", mw.ErrAttr(err))
-		render.JSON(w, r, response.NewInternalError())
+		render.JSON(w, r, response.WithInternalError())
 		return
 	}
 
-	render.JSON(w, r, response.NewOk(data{
+	render.JSON(w, r, response.WithOk(data{
 		TotalCount: totalCount,
 		Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
 	}))

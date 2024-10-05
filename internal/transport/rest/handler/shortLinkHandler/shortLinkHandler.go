@@ -64,32 +64,32 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	req := &request{}
 	if err := render.Decode(r, req); err != nil {
 		log.Info("cannot decode body", mw.ErrAttr(err))
-		render.JSON(w, r, response.NewError(err))
+		render.JSON(w, r, response.WithError(err))
 		return
 	}
 
 	if err := h.validate(req); err != nil {
 		log.Info("invalid request", mw.ErrAttr(err))
-		render.JSON(w, r, response.NewError(err)) //todo validation error
+		render.JSON(w, r, response.WithValidationErrors(err.(validation.Errors)))
 		return
 	}
 
 	shorted, err := h.shortener.Short(r.Context(), *req.ToModel(userId))
 	if errors.Is(err, core.ErrAliasExists) {
-		render.JSON(w, r, response.NewError(core.ErrAliasExists))
+		render.JSON(w, r, response.WithError(core.ErrAliasExists))
 		return
 	}
 	if errors.Is(err, core.ErrCustomNameExists) {
-		render.JSON(w, r, response.NewError(core.ErrAliasExists))
+		render.JSON(w, r, response.WithError(core.ErrAliasExists))
 		return
 	}
 	if err != nil {
 		log.Error("cannot save link", mw.ErrAttr(err))
-		render.JSON(w, r, response.NewInternalError())
+		render.JSON(w, r, response.WithInternalError())
 		return
 	}
 
-	render.JSON(w, r, response.NewOk(response.LinkFromModel(shorted)))
+	render.JSON(w, r, response.WithOk(response.LinkFromModel(shorted)))
 }
 
 func (h *Handler) validate(r *request) error {
