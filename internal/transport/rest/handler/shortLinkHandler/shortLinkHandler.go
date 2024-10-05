@@ -68,9 +68,9 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.validate(req); err != nil {
-		log.Info("invalid request", mw.ErrAttr(err))
-		render.JSON(w, r, response.WithValidationErrors(err))
+	if errs := h.validate(req); errs != nil {
+		log.Info("invalid request", mw.ErrAttr(errs))
+		render.JSON(w, r, response.WithValidationErrors(errs))
 		return
 	}
 

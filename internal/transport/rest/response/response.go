@@ -1,10 +1,5 @@
 package response
 
-import (
-	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/thoas/go-funk"
-)
-
 const (
 	StatusOk    = "Ok"
 	StatusError = "Error"
@@ -29,10 +24,10 @@ func NewValidationError(filed string, err error) ValidationError {
 }
 
 type Response struct {
-	Status           string            `json:"status"`
-	Data             any               `json:"data,omitempty"`
-	ErrorCode        string            `json:"error,omitempty"`
-	ValidationErrors []ValidationError `json:"validation_errors,omitempty"`
+	Status           string `json:"status"`
+	Data             any    `json:"data,omitempty"`
+	ErrorCode        string `json:"error,omitempty"`
+	ValidationErrors error  `json:"validation_errors,omitempty"`
 }
 
 func WithError(err error) (resp Response) {
@@ -50,15 +45,10 @@ func WithInternalError() Response {
 }
 
 func WithValidationErrors(errs error) (resp Response) {
-	validationErrors, ok := errs.(validation.Errors)
-	if !ok {
-		panic("take not validation error")
-	}
-
 	return Response{
 		Status:           StatusError,
 		ErrorCode:        ValidationErrorCode,
-		ValidationErrors: funk.Map(validationErrors, NewValidationError).([]ValidationError),
+		ValidationErrors: errs,
 	}
 }
 
