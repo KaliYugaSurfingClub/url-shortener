@@ -48,7 +48,7 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errs := h.validate(req); errs != nil {
+	if errs := h.validateRequest(req); errs != nil {
 		log.Info("invalid request", mw.ErrAttr(errs))
 		render.JSON(w, r, response.WithValidationErrors(errs))
 		return
@@ -92,7 +92,7 @@ func (r *request) ToModel(userId int64) *model.Link {
 	}
 }
 
-func (h *Handler) validate(r *request) error {
+func (h *Handler) validateRequest(r *request) error {
 	return validation.ValidateStruct(r,
 		validation.Field(&r.Original, validation.Required, validation.Length(1, h.OriginalMaxLen), is.URL),
 		validation.Field(&r.Alias, validation.Length(1, h.AliasMaxLen)),

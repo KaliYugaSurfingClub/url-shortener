@@ -2,7 +2,6 @@ package adViewer
 
 import (
 	"context"
-	"errors"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
 )
@@ -29,10 +28,6 @@ func New(
 }
 
 func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata model.ClickMetadata) (link *model.Link, clickId int64, err error) {
-	if alias == "" {
-		return nil, -1, errors.New("alias can not be empty")
-	}
-
 	err = v.transactor.WithinTx(ctx, func(ctx context.Context) error {
 		link, err = v.links.GetActiveByAlias(ctx, alias)
 		if err != nil {
@@ -68,6 +63,7 @@ func (v *AdViewer) CompleteView(ctx context.Context, clickId int64, userId int64
 
 		payment := 10
 
+		//todo referal
 		if err := v.users.AddToBalance(ctx, userId, payment); err != nil {
 			return err
 		}

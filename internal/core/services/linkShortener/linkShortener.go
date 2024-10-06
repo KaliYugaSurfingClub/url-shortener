@@ -16,10 +16,6 @@ type LinkShortener struct {
 }
 
 func New(storage port.LinkStorage, generator port.Generator, triesToGenerate int) (*LinkShortener, error) {
-	if generator == nil {
-		return nil, errors.New("generator can't be nil")
-	}
-
 	if triesToGenerate <= 0 {
 		return nil, errors.New("triesToGenerate can not be less than 0")
 	}
