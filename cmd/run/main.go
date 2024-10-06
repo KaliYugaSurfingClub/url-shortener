@@ -6,11 +6,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
 	"shortener/internal/core/generator"
-	"shortener/internal/core/model"
 	"shortener/internal/core/services/adViewer"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
@@ -20,16 +20,16 @@ import (
 	"shortener/internal/transport/rest/handler"
 	"shortener/internal/transport/rest/handler/getLinkClicksHandler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
+	"shortener/internal/transport/rest/handler/openShortenedHandler"
 	"shortener/internal/transport/rest/handler/shortLinkHandler"
 	"shortener/internal/transport/rest/mw"
 	"time"
 )
 
-type FakeUserStore struct{}
+type temporaryAdProvider struct{}
 
-func (u *FakeUserStore) AddToBalance(ctx context.Context, id int64, payment int) error {
-	fmt.Println("balance increasing")
-	return nil
+func (p *temporaryAdProvider) Get(_ context.Context) (string, error) {
+	return "http://localhost:8080/static/video/1", nil
 }
 
 func main() {
@@ -51,17 +51,13 @@ func main() {
 
 	linkStore := linkRepo.New(db)
 	clickStore := clickRepo.New(db)
-	userStore := &FakeUserStore{}
 	transactor := transaction.NewTransactor(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
 	manager := linkManager.New(linkStore, clickStore)
 
-	adViewManager := adViewer.New(linkStore, clickStore, userStore, transactor)
-
-	_, _, err = adViewManager.RecordClick(context.Background(), "abc", model.ClickMetadata{})
-	fmt.Println(err)
+	adViewManager := adViewer.New(linkStore, clickStore, transactor)
 
 	jwtOpt := mw.JwtOptions{
 		UserIdKey:  "id",
@@ -85,6 +81,11 @@ func main() {
 		r.Get("/", getUserLinksHandler.New(manager).Handler)
 		r.Get("/{id}/clicks", getLinkClicksHandler.New(manager).Handler)
 	})
+
+	t, _ := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\AD.html")
+
+	r.Get("/{alias}", openShortenedHandler.New(adViewManager, &temporaryAdProvider{}, t).Handler)
+	r.Get("/static/video/{id}", handler.StreamVideoHandler)
 
 	server := &http.Server{
 		Addr:    ":8080",

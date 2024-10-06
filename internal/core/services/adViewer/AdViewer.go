@@ -9,25 +9,24 @@ import (
 type AdViewer struct {
 	links      port.LinkStorage
 	clicks     port.ClickStorage
-	users      port.UserStorage
 	transactor port.Transactor
 }
 
 func New(
 	linksStorage port.LinkStorage,
 	clicksStorage port.ClickStorage,
-	userStorage port.UserStorage,
 	transactor port.Transactor) *AdViewer {
 
 	return &AdViewer{
 		links:      linksStorage,
 		clicks:     clicksStorage,
-		users:      userStorage,
 		transactor: transactor,
 	}
 }
 
-func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata model.ClickMetadata) (link *model.Link, clickId int64, err error) {
+func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.ClickMetadata) (original string, clickId int64, err error) {
+	var link *model.Link
+
 	err = v.transactor.WithinTx(ctx, func(ctx context.Context) error {
 		link, err = v.links.GetActiveByAlias(ctx, alias)
 		if err != nil {
@@ -52,22 +51,9 @@ func (v *AdViewer) RecordClick(ctx context.Context, alias string, metadata model
 		return nil
 	})
 
-	return link, clickId, err
-}
+	if err != nil {
+		return "", 0, err
+	}
 
-func (v *AdViewer) CompleteView(ctx context.Context, clickId int64, userId int64) error {
-	return v.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		if err := v.clicks.UpdateStatus(ctx, clickId, model.AdCompleted); err != nil {
-			return err
-		}
-
-		payment := 10
-
-		//todo referal
-		if err := v.users.AddToBalance(ctx, userId, payment); err != nil {
-			return err
-		}
-
-		return nil
-	})
+	return link.Original, clickId, nil
 }

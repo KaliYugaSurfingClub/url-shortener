@@ -23,14 +23,10 @@ type ClickStorage interface {
 	GetByLinkId(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error)
 }
 
-type UserStorage interface {
-	AddToBalance(ctx context.Context, id int64, payment int) error
+type Transactor interface {
+	WithinTx(ctx context.Context, fn func(tx context.Context) error) error
 }
 
 type Generator interface {
 	Generate() string
-}
-
-type Transactor interface {
-	WithinTx(ctx context.Context, fn func(tx context.Context) error) error
 }
