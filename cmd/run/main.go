@@ -85,7 +85,8 @@ func main() {
 	t, _ := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\AD.html")
 
 	r.Get("/{alias}", openShortenedHandler.New(adViewManager, &temporaryAdProvider{}, t).Handler)
-	r.Get("/static/video/{id}", handler.StreamVideoHandler)
+
+	r.Get("/static/video/{id}", handler.StreamVideoHandler) //todo maybe /static/video may returns random video
 
 	server := &http.Server{
 		Addr:    ":8080",

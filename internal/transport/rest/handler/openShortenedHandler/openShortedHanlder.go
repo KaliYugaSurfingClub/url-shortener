@@ -5,10 +5,13 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"html/template"
+	"net"
 	"net/http"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
+	"strings"
+	"time"
 )
 
 type recorder interface {
@@ -47,8 +50,13 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	log := mw.ExtractLog(r.Context(), "transport.rest.openShortenedHandler")
 
 	alias := chi.URLParam(r, "alias")
+	metadata := model.ClickMetadata{
+		UserAgent:  r.UserAgent(),
+		AccessTime: time.Now(),
+		IP:         getClientIP(r),
+	}
 
-	original, clickId, err := h.recorder.OnClick(r.Context(), alias, model.ClickMetadata{})
+	original, clickId, err := h.recorder.OnClick(r.Context(), alias, metadata)
 	if errors.Is(err, core.ErrLinkNotFound) {
 		log.Info(err.Error())
 		w.Write([]byte("not found")) //todo
@@ -74,4 +82,21 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("internal error")) //todo
 		return
 	}
+}
+
+func getClientIP(r *http.Request) net.IP {
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		ips := strings.Split(forwarded, ",")
+		ip := strings.TrimSpace(ips[0])
+
+		return net.ParseIP(ip)
+	}
+
+	ip := r.RemoteAddr
+	if strings.Contains(ip, ":") {
+		ip, _, _ = net.SplitHostPort(ip)
+	}
+
+	return net.ParseIP(ip)
 }

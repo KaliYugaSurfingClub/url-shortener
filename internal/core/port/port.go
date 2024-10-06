@@ -27,6 +27,15 @@ type Transactor interface {
 	WithinTx(ctx context.Context, fn func(tx context.Context) error) error
 }
 
+type ClickNotifier interface {
+	NotifyOpen(ctx context.Context, userId int64, clickId int64)
+	NotifyWatched(ctx context.Context, linkName string, clickId int64)
+}
+
+type Payer interface {
+	Pay(ctx context.Context, userId int64) error
+}
+
 type Generator interface {
 	Generate() string
 }
