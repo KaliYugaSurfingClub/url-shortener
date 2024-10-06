@@ -92,6 +92,10 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, params model.GetLinksParams)
 		links = append(links, link)
 	}
 
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return links, nil
 }
 

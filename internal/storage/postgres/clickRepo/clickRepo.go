@@ -83,6 +83,10 @@ func (r *ClickRepo) GetByLinkId(ctx context.Context, params model.GetClicksParam
 		clicks = append(clicks, click)
 	}
 
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return clicks, nil
 }
 
