@@ -60,6 +60,7 @@ type LinkSort struct {
 }
 
 type GetLinksParams struct {
+	UserId     int64
 	Filter     LinkFilter
 	Sort       LinkSort
 	Pagination Pagination

@@ -48,13 +48,13 @@ func (r *LinkRepo) DoesLinkBelongUser(ctx context.Context, linkId int64, userId 
 	return link != nil, err
 }
 
-func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
+func (r *LinkRepo) GetCountByUserId(ctx context.Context, params model.GetLinksParams) (int64, error) {
 	const op = "storage.postgres.LinkRepo.GetCountByUserId"
 
-	query := newBuilder(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params).String()
+	query := newBuilder(`SELECT COUNT(*) FROM link WHERE created_by = $1`).Filter(params.Filter).String()
 
 	var totalCount int64
-	err := r.db.QueryRow(ctx, query, userId).Scan(&totalCount)
+	err := r.db.QueryRow(ctx, query, params.UserId).Scan(&totalCount)
 
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -64,7 +64,7 @@ func (r *LinkRepo) GetCountByUserId(ctx context.Context, userId int64, params mo
 }
 
 // todo
-func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
+func (r *LinkRepo) GetByUserId(ctx context.Context, params model.GetLinksParams) ([]*model.Link, error) {
 	const op = "storage.postgres.LinkRepo.GetByUserId"
 
 	query := newBuilder(`SELECT * FROM link WHERE created_by = $1`).
@@ -75,7 +75,7 @@ func (r *LinkRepo) GetByUserId(ctx context.Context, userId int64, params model.G
 
 	links := make([]*model.Link, 0)
 
-	rows, err := r.db.Query(ctx, query, userId)
+	rows, err := r.db.Query(ctx, query, params.UserId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

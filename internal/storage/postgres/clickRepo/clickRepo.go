@@ -43,13 +43,13 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 	return id, nil
 }
 
-func (r *ClickRepo) GetCountByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) (int64, error) {
+func (r *ClickRepo) GetCountByLinkId(ctx context.Context, params model.GetClicksParams) (int64, error) {
 	const op = "storage.postgres.ClickRepo.GetCountByLinkId"
 
 	query := `SELECT COUNT(*) FROM click WHERE link_id = $1`
 
 	var totalCount int64
-	err := r.db.QueryRow(ctx, query, linkId).Scan(&totalCount)
+	err := r.db.QueryRow(ctx, query, params.LinkId).Scan(&totalCount)
 
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -58,13 +58,13 @@ func (r *ClickRepo) GetCountByLinkId(ctx context.Context, linkId int64, params m
 	return totalCount, nil
 }
 
-// todo
-func (r *ClickRepo) GetByLinkId(ctx context.Context, linkId int64, params model.GetClicksParams) ([]*model.Click, error) {
+// todo pagination = {0, 0}
+func (r *ClickRepo) GetByLinkId(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error) {
 	const op = "storage.postgres.ClickRepo.GetByLinkId"
 
 	query := builder.New(`SELECT * FROM click WHERE link_id = $1`).Paginate(params.Pagination).String()
 
-	rows, err := r.db.Query(ctx, query, linkId)
+	rows, err := r.db.Query(ctx, query, params.LinkId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

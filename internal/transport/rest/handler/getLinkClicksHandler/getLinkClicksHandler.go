@@ -16,7 +16,7 @@ import (
 )
 
 type provider interface {
-	GetLinkClicks(ctx context.Context, linkId int64, userId int64, params model.GetClicksParams) ([]*model.Click, int64, error)
+	GetLinkClicks(ctx context.Context, params model.GetClicksParams) ([]*model.Click, int64, error)
 }
 
 type Handler struct {
@@ -39,24 +39,25 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 
 	log := mw.ExtractLog(r.Context(), "transport.rest.GetLinkClicks")
 
-	userId, _ := mw.ExtractUserID(r.Context())
-
-	params := &UrlParams{}
-	if err := request.DecodeURLParams(params, r.URL.Query()); err != nil {
-		log.Error("unable to decode URL params", mw.ErrAttr(err))
+	urlParams := &UrlParams{}
+	if err := request.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
+		log.Error("unable to decode URL urlParams", mw.ErrAttr(err))
 		render.JSON(w, r, response.WithInternalError())
 		return
 	}
 
-	if err := params.Validate(); err != nil {
-		log.Error("invalid url params", mw.ErrAttr(err))
+	if err := urlParams.Validate(); err != nil {
+		log.Error("invalid url urlParams", mw.ErrAttr(err))
 		render.JSON(w, r, response.WithValidationErrors(err))
 		return
 	}
 
-	linkId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	params := urlParams.ToModel()
+	//todo
+	params.UserId, _ = mw.ExtractUserID(r.Context())
+	params.LinkId, _ = strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 
-	clicks, totalCount, err := h.provider.GetLinkClicks(r.Context(), linkId, userId, params.ToModel())
+	clicks, totalCount, err := h.provider.GetLinkClicks(r.Context(), params)
 	if errors.Is(err, core.ErrLinkNotFound) {
 		log.Info("link not found", mw.ErrAttr(err))
 		render.JSON(w, r, response.WithError(core.ErrLinkNotFound))

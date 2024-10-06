@@ -20,24 +20,24 @@ func New(linkStorage port.LinkStorage, clicksStorage port.ClickStorage) *LinkMan
 	}
 }
 
-func (m *LinkManager) GetUserLinks(ctx context.Context, userId int64, params model.GetLinksParams) (links []*model.Link, totalCount int64, err error) {
+func (m *LinkManager) GetUserLinks(ctx context.Context, params model.GetLinksParams) (links []*model.Link, totalCount int64, err error) {
 	defer utils.WithinOp("core.linkManager.GetUserLinks", &err)
 
-	if totalCount, err = m.links.GetCountByUserId(ctx, userId, params.Filter); err != nil {
+	if totalCount, err = m.links.GetCountByUserId(ctx, params); err != nil {
 		return nil, 0, err
 	}
 
-	if links, err = m.links.GetByUserId(ctx, userId, params); err != nil {
+	if links, err = m.links.GetByUserId(ctx, params); err != nil {
 		return nil, 0, err
 	}
 
 	return links, totalCount, nil
 }
 
-func (m *LinkManager) GetLinkClicks(ctx context.Context, linkId int64, userId int64, params model.GetClicksParams) (clicks []*model.Click, totalCount int64, err error) {
+func (m *LinkManager) GetLinkClicks(ctx context.Context, params model.GetClicksParams) (clicks []*model.Click, totalCount int64, err error) {
 	defer utils.WithinOp("core.linkManager.GetLinkClicks", &err)
 
-	ok, err := m.links.DoesLinkBelongUser(ctx, linkId, userId)
+	ok, err := m.links.DoesLinkBelongUser(ctx, params.LinkId, params.UserId)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -45,11 +45,11 @@ func (m *LinkManager) GetLinkClicks(ctx context.Context, linkId int64, userId in
 		return nil, 0, core.ErrLinkDoesNotBelongsUser
 	}
 
-	if totalCount, err = m.clicks.GetCountByLinkId(ctx, linkId, params); err != nil {
+	if totalCount, err = m.clicks.GetCountByLinkId(ctx, params); err != nil {
 		return nil, 0, err
 	}
 
-	if clicks, err = m.clicks.GetByLinkId(ctx, linkId, params); err != nil {
+	if clicks, err = m.clicks.GetByLinkId(ctx, params); err != nil {
 		return nil, 0, err
 	}
 

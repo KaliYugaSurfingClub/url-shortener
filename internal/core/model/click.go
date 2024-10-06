@@ -7,6 +7,7 @@ import (
 
 type AdStatus string
 
+// todo parse from db
 const (
 	AdStarted   = "started"
 	AdClosed    = "closed"
@@ -29,4 +30,6 @@ type Click struct {
 type GetClicksParams struct {
 	Pagination Pagination
 	Order      Order
+	UserId     int64
+	LinkId     int64
 }
