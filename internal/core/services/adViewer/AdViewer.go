@@ -14,19 +14,21 @@ type AdViewer struct {
 	notifier           port.ClickNotifier
 	payer              port.Payer
 	transactor         port.Transactor
-	clickToLinkCreator sync.Map
+	clickToLinkCreator sync.Map //todo delete after 10 minutes and mark as closed maybe redis
 }
 
 func New(
 	linksStorage port.LinkStorage,
 	clicksStorage port.ClickStorage,
-	transactor port.Transactor,
 	payer port.Payer,
+	notifier port.ClickNotifier,
+	transactor port.Transactor,
 ) *AdViewer {
 	return &AdViewer{
 		links:      linksStorage,
 		clicks:     clicksStorage,
 		transactor: transactor,
+		notifier:   notifier,
 		payer:      payer,
 	}
 }
@@ -46,6 +48,8 @@ func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.Cli
 			return err
 		}
 
+		link.ClicksCount++
+
 		clickToSave := &model.Click{
 			LinkId:   link.Id,
 			Status:   model.AdStarted,
@@ -64,8 +68,8 @@ func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.Cli
 		return "", 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	v.clickToLinkCreator.Store(clickId, link.CreatedBy)
-	v.notifier.NotifyOpen(ctx, link.CreatedBy, clickId)
+	v.clickToLinkCreator.Store(clickId, link)
+	v.notifier.NotifyOpen(ctx, link, clickId)
 
 	return link.Original, clickId, nil
 }
@@ -73,16 +77,16 @@ func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.Cli
 func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) error {
 	const op = "core.services.adViewer.CompleteAd"
 
-	if err := v.clicks.UpdateStatus(ctx, clickId, model.AdCompleted); err != nil {
+	if err := v.clicks.UpdateStatus(ctx, clickId, model.AdWatched); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	userId, ok := v.clickToLinkCreator.Load(clickId)
+	link, ok := v.clickToLinkCreator.Load(clickId)
 	if !ok {
 		return fmt.Errorf("%s: click not found", op) //todo
 	}
 
-	v.notifier.NotifyOpen(ctx, userId.(int64), clickId)
+	v.notifier.NotifyWatched(ctx, link.(*model.Link), clickId)
 
 	v.clickToLinkCreator.Delete(clickId)
 

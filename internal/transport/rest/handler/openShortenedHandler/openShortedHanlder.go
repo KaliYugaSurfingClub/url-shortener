@@ -24,18 +24,18 @@ type adProvider interface {
 
 type Handler struct {
 	recorder       recorder
-	adProvider     adProvider
+	videoURL       string
 	adPageTemplate *template.Template
 }
 
 func New(
 	recorder recorder,
-	adProvider adProvider,
+	videoURL string,
 	adPageTemplate *template.Template,
 ) *Handler {
 	return &Handler{
 		recorder:       recorder,
-		adProvider:     adProvider,
+		videoURL:       videoURL,
 		adPageTemplate: adPageTemplate,
 	}
 }
@@ -63,17 +63,10 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	videoURL, err := h.adProvider.Get(r.Context())
-	if err != nil {
-		log.Info(err.Error())
-		w.Write([]byte("internal error")) //todo
-		return
-	}
-
 	variables := PageVariables{
 		Original: original,
 		ClickId:  clickId,
-		VideoURL: videoURL,
+		VideoURL: h.videoURL,
 	}
 
 	err = h.adPageTemplate.Execute(w, variables)

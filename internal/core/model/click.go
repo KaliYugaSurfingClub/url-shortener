@@ -11,6 +11,7 @@ type AdStatus string
 const (
 	AdStarted   = "started"
 	AdClosed    = "closed"
+	AdWatched   = "watched"
 	AdCompleted = "completed"
 )
 

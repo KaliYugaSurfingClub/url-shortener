@@ -35,7 +35,7 @@ CREATE TABLE link(
     UNIQUE (custom_name, created_by)
 );
 
-CREATE TYPE ad_status_enum AS ENUM ('started', 'closed', 'completed');
+CREATE TYPE ad_status_enum AS ENUM ('started', 'closed', 'watched', 'completed');
 
 CREATE TABLE click(
     id BIGSERIAL PRIMARY KEY,

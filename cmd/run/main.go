@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"shortener/internal/core/generator"
+	"shortener/internal/core/model"
 	"shortener/internal/core/services/adViewer"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
@@ -26,11 +27,14 @@ import (
 	"time"
 )
 
-type temporaryAdProvider struct{}
+type temporaryNotifier struct{}
 
-func (p *temporaryAdProvider) Get(_ context.Context) (string, error) {
-	return "http://localhost:8080/static/video/1", nil
-}
+func (n *temporaryNotifier) NotifyOpen(context.Context, *model.Link, int64)    {}
+func (n *temporaryNotifier) NotifyWatched(context.Context, *model.Link, int64) {}
+
+type tempPayer struct{}
+
+func (t *tempPayer) Pay(context.Context, int64) error { return nil }
 
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -57,7 +61,7 @@ func main() {
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
 	manager := linkManager.New(linkStore, clickStore)
 
-	adViewManager := adViewer.New(linkStore, clickStore, transactor)
+	adViewManager := adViewer.New(linkStore, clickStore, &tempPayer{}, &temporaryNotifier{}, transactor)
 
 	jwtOpt := mw.JwtOptions{
 		UserIdKey:  "id",
@@ -84,9 +88,9 @@ func main() {
 
 	t, _ := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\AD.html")
 
-	r.Get("/{alias}", openShortenedHandler.New(adViewManager, &temporaryAdProvider{}, t).Handler)
+	r.Get("/{alias}", openShortenedHandler.New(adViewManager, "/static/video", t).Handler)
 
-	r.Get("/static/video/{id}", handler.StreamVideoHandler) //todo maybe /static/video may returns random video
+	r.Get("/static/video", handler.StreamVideoHandler) //todo maybe /static/video may returns random video
 
 	server := &http.Server{
 		Addr:    ":8080",
