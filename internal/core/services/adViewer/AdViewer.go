@@ -131,6 +131,7 @@ func (v *AdViewer) StartCleaningExpiredSessions(sessionLifetime time.Duration, t
 			v.cleanerErrs <- err
 		}
 
+		//todo notify
 		//for _, click := range toClose {
 		//	if link, ok := v.processedLinks.LoadAndDelete(click.Id); ok {
 		//		v.closeAd(context.Background(), link.(*model.Link), click.Id)

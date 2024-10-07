@@ -137,7 +137,7 @@ func (r *ClickRepo) BatchUpdateStatus(ctx context.Context, clicksIds []int64, st
 func (r *ClickRepo) GetExpiredClickSessions(ctx context.Context, sessionLifetime time.Duration, count int64) ([]*model.Click, error) {
 	const op = "storage.postgres.ClickRepo.GetExpiredClickSessions"
 
-	query := `SELECT * FROM click WHERE CURRENT_TIMESTAMP - access_time >= $1 LIMIT $2`
+	query := `SELECT * FROM click WHERE CURRENT_TIMESTAMP - access_time >= $1 AND ad_status = 'started' LIMIT $2`
 
 	rows, err := r.db.Query(ctx, query, sessionLifetime, count)
 	if err != nil {
