@@ -29,7 +29,8 @@ type Transactor interface {
 
 type ClickNotifier interface {
 	NotifyOpen(ctx context.Context, link *model.Link, clickId int64)
-	NotifyWatched(ctx context.Context, link *model.Link, clickId int64)
+	NotifyClosed(ctx context.Context, link *model.Link, clickId int64)
+	NotifyCompleted(ctx context.Context, link *model.Link, clickId int64)
 }
 
 type Payer interface {

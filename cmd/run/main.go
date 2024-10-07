@@ -29,8 +29,9 @@ import (
 
 type temporaryNotifier struct{}
 
-func (n *temporaryNotifier) NotifyOpen(context.Context, *model.Link, int64)    {}
-func (n *temporaryNotifier) NotifyWatched(context.Context, *model.Link, int64) {}
+func (n *temporaryNotifier) NotifyOpen(context.Context, *model.Link, int64)      {}
+func (n *temporaryNotifier) NotifyClosed(context.Context, *model.Link, int64)    {}
+func (n *temporaryNotifier) NotifyCompleted(context.Context, *model.Link, int64) {}
 
 type tempPayer struct{}
 

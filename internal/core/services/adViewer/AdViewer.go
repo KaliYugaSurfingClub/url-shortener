@@ -3,18 +3,22 @@ package adViewer
 import (
 	"context"
 	"fmt"
+	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
 	"sync"
 )
 
 type AdViewer struct {
-	links              port.LinkStorage
-	clicks             port.ClickStorage
-	notifier           port.ClickNotifier
-	payer              port.Payer
-	transactor         port.Transactor
-	clickToLinkCreator sync.Map //todo delete after 10 minutes and mark as closed maybe redis
+	links          port.LinkStorage
+	clicks         port.ClickStorage
+	notifier       port.ClickNotifier
+	payer          port.Payer
+	transactor     port.Transactor
+	processedLinks sync.Map //todo delete after 10 minutes and mark as closed maybe redis maybe
+	//каждые N минут просматривать все ссылки в постгресе те которые открыты давно но не выполнены закрыть и уведомалят
+	//сделать батчинг запросов
+	errs chan error
 }
 
 func New(
@@ -68,29 +72,44 @@ func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.Cli
 		return "", 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	v.clickToLinkCreator.Store(clickId, link)
+	v.processedLinks.Store(clickId, link)
 	v.notifier.NotifyOpen(ctx, link, clickId)
 
 	return link.Original, clickId, nil
 }
 
-func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) error {
+// todo saga transaction
+func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) error { //todo maybe return bool
 	const op = "core.services.adViewer.CompleteAd"
 
-	if err := v.clicks.UpdateStatus(ctx, clickId, model.AdWatched); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	link, ok := v.clickToLinkCreator.Load(clickId)
+	link, ok := v.processedLinks.Load(clickId)
 	if !ok {
-		return fmt.Errorf("%s: click not found", op) //todo
+		return fmt.Errorf("%s: click not found", core.ErrTryToCompleteUnexactingClick)
 	}
 
-	v.notifier.NotifyWatched(ctx, link.(*model.Link), clickId)
+	v.processedLinks.Delete(clickId)
 
-	v.clickToLinkCreator.Delete(clickId)
+	go func() {
+		link := link.(*model.Link)
 
-	//todo pay
+		if err := v.payer.Pay(ctx, link.CreatedBy); err != nil {
+			v.errs <- fmt.Errorf("%s: %w", op, err)
+
+			if err := v.clicks.UpdateStatus(ctx, clickId, model.AdClosed); err != nil {
+				v.errs <- fmt.Errorf("%s: %w", op, err)
+				return
+			}
+
+			v.notifier.NotifyClosed(ctx, link, clickId)
+			return
+		}
+
+		if err := v.clicks.UpdateStatus(ctx, clickId, model.AdCompleted); err != nil {
+			v.errs <- fmt.Errorf("%s: %w", op, err)
+		} else {
+			v.notifier.NotifyCompleted(ctx, link, clickId)
+		}
+	}()
 
 	return nil
 }
