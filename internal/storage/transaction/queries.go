@@ -38,3 +38,11 @@ func (q *Queries) Exec(ctx context.Context, query string, args ...any) (pgconn.C
 
 	return q.db.Exec(ctx, query, args...)
 }
+
+func (q *Queries) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
+	if tx := extractTx(ctx); tx != nil {
+		return tx.SendBatch(ctx, b)
+	}
+
+	return q.db.SendBatch(ctx, b)
+}

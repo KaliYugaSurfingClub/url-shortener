@@ -21,6 +21,8 @@ type ClickStorage interface {
 	UpdateStatus(ctx context.Context, id int64, status model.AdStatus) error
 	GetCountByLinkId(ctx context.Context, params model.GetClicksParams) (int64, error)
 	GetByLinkId(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error)
+	GetExpiredClickSessions(ctx context.Context, sessionLifetime time.Duration, count int64) ([]*model.Click, error)
+	BatchUpdateStatus(ctx context.Context, clicksIds []int64, status model.AdStatus) error
 }
 
 type Transactor interface {

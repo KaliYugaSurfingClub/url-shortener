@@ -29,9 +29,17 @@ import (
 
 type temporaryNotifier struct{}
 
-func (n *temporaryNotifier) NotifyOpen(context.Context, *model.Link, int64)      {}
-func (n *temporaryNotifier) NotifyClosed(context.Context, *model.Link, int64)    {}
-func (n *temporaryNotifier) NotifyCompleted(context.Context, *model.Link, int64) {}
+func (n *temporaryNotifier) NotifyOpen(_ context.Context, link *model.Link, clickId int64) {
+	fmt.Printf("open clickId - %d link - %+v", clickId, link)
+}
+
+func (n *temporaryNotifier) NotifyClosed(_ context.Context, link *model.Link, clickId int64) {
+	fmt.Printf("close clickId - %d link - %+v", clickId, link)
+}
+
+func (n *temporaryNotifier) NotifyCompleted(_ context.Context, link *model.Link, clickId int64) {
+	fmt.Printf("complete clickId - %d link - %+v", clickId, link)
+}
 
 type tempPayer struct{}
 
@@ -62,7 +70,23 @@ func main() {
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
 	manager := linkManager.New(linkStore, clickStore)
 
-	adViewManager := adViewer.New(linkStore, clickStore, &tempPayer{}, &temporaryNotifier{}, transactor)
+	adViewManager := adViewer.New(linkStore, clickStore, &tempPayer{}, &temporaryNotifier{}, transactor, 16, 16)
+	onCompleteErrs := adViewManager.OnCompleteErrs()
+
+	go func() {
+		for err := range onCompleteErrs {
+			fmt.Println(err)
+		}
+	}()
+
+	go adViewManager.StartCleaningExpiredSessions(1*time.Minute, 1*time.Minute, 100)
+	cleanerErrs := adViewManager.CleanerErrs()
+
+	go func() {
+		for err := range cleanerErrs {
+			fmt.Println(err)
+		}
+	}()
 
 	jwtOpt := mw.JwtOptions{
 		UserIdKey:  "id",
@@ -91,7 +115,7 @@ func main() {
 
 	r.Get("/{alias}", openShortenedHandler.New(adViewManager, "/static/video", t).Handler)
 
-	r.Get("/static/video", handler.StreamVideoHandler) //todo maybe /static/video may returns random video
+	r.Get("/static/video", handler.StreamVideoHandler)
 
 	server := &http.Server{
 		Addr:    ":8080",

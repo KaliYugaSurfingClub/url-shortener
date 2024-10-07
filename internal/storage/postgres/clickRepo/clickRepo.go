@@ -3,11 +3,14 @@ package clickRepo
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
 	"shortener/internal/storage/postgres/builder"
 	"shortener/internal/storage/transaction"
+	"time"
 )
 
 var _ port.ClickStorage = (*ClickRepo)(nil)
@@ -58,7 +61,7 @@ func (r *ClickRepo) GetCountByLinkId(ctx context.Context, params model.GetClicks
 	return totalCount, nil
 }
 
-// todo pagination = {0, 0}
+// todo what if pagination = {0, 0}
 func (r *ClickRepo) GetByLinkId(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error) {
 	const op = "storage.postgres.ClickRepo.GetByLinkId"
 
@@ -71,7 +74,7 @@ func (r *ClickRepo) GetByLinkId(ctx context.Context, params model.GetClicksParam
 
 	defer rows.Close()
 
-	clicks := make([]*model.Click, 0)
+	clicks := make([]*model.Click, 0, params.Pagination.Size)
 
 	for rows.Next() {
 		click, err := clickFromRow(rows)
@@ -102,4 +105,62 @@ func (r *ClickRepo) UpdateStatus(ctx context.Context, clickId int64, status mode
 	}
 
 	return nil
+}
+
+func (r *ClickRepo) BatchUpdateStatus(ctx context.Context, clicksIds []int64, status model.AdStatus) error {
+	const op = "storage.postgres.ClickRepo.BatchUpdateStatus"
+
+	batch := new(pgx.Batch)
+
+	query := `UPDATE click SET ad_status = $2 WHERE id = $1`
+
+	for _, id := range clicksIds {
+		batch.Queue(query, id, status)
+	}
+
+	errs := new(multierror.Error)
+	br := r.db.SendBatch(ctx, batch)
+
+	for i := 0; i < len(clicksIds); i++ {
+		_, err := br.Exec()
+		errs = multierror.Append(errs, err)
+	}
+
+	if err := errs.ErrorOrNil(); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+// todo duration
+func (r *ClickRepo) GetExpiredClickSessions(ctx context.Context, sessionLifetime time.Duration, count int64) ([]*model.Click, error) {
+	const op = "storage.postgres.ClickRepo.GetExpiredClickSessions"
+
+	query := `SELECT * FROM click WHERE CURRENT_TIMESTAMP - access_time >= $1 LIMIT $2`
+
+	rows, err := r.db.Query(ctx, query, sessionLifetime, count)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	defer rows.Close()
+
+	clicks := make([]*model.Click, 0, count)
+
+	for rows.Next() {
+		click, err := clickFromRow(rows)
+
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		clicks = append(clicks, click)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return clicks, nil
 }
