@@ -6,47 +6,38 @@ import (
 	"github.com/thoas/go-funk"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
-	"sync"
 	"time"
 )
 
 //todo shutdown
 
 type AdViewer struct {
-	links          port.LinkStorage
-	clicks         port.ClickStorage
-	notifier       port.ClickNotifier
-	payer          port.Payer
-	transactor     port.Transactor
-	processedLinks sync.Map //todo delete after 10 minutes and mark as closed maybe redis maybe
-	//каждые N минут просматривать все ссылки в постгресе те которые открыты давно но не выполнены закрыть и уведомалят
-	//сделать батчинг запросов
-	onCompleteErrs chan error
-	cleanerErrs    chan error
+	links       port.LinkStorage
+	clicks      port.ClickStorage
+	payer       port.Payer
+	transactor  port.Transactor
+	payErrs     chan error
+	cleanerErrs chan error
 }
 
 func New(
 	linksStorage port.LinkStorage,
 	clicksStorage port.ClickStorage,
 	payer port.Payer,
-	notifier port.ClickNotifier,
 	transactor port.Transactor,
-	onCompleteBuffer int,
-	cleanerBuffer int,
+	payErrsBuffer int,
 ) *AdViewer {
 	return &AdViewer{
-		links:          linksStorage,
-		clicks:         clicksStorage,
-		transactor:     transactor,
-		notifier:       notifier,
-		payer:          payer,
-		onCompleteErrs: make(chan error, onCompleteBuffer),
-		cleanerErrs:    make(chan error, cleanerBuffer),
+		links:      linksStorage,
+		clicks:     clicksStorage,
+		transactor: transactor,
+		payer:      payer,
+		payErrs:    make(chan error, payErrsBuffer),
 	}
 }
 
 func (v *AdViewer) OnCompleteErrs() <-chan error {
-	return v.onCompleteErrs
+	return v.payErrs
 }
 
 func (v *AdViewer) CleanerErrs() <-chan error {
@@ -89,32 +80,33 @@ func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.Cli
 		return "", 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	v.processedLinks.Store(clickId, link)
-	v.notifier.NotifyOpen(ctx, link, clickId)
-
 	return link.Original, clickId, nil
 }
 
-func (v *AdViewer) OnComplete(ctx context.Context, clickId int64) bool {
-	link, ok := v.processedLinks.LoadAndDelete(clickId)
-	if !ok {
-		return false
+func (v *AdViewer) OnComplete(ctx context.Context, clickId int64) error {
+	const op = "core.services.adViewer.OnComplete"
+
+	//todo use cache to optimize this
+	//todo or join
+	click, err := v.clicks.GetById(ctx, clickId)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	//todo put to the queue
-	//or in startClosing check any of expired sessions has payment (one query)
 	go func() {
-		link := link.(*model.Link)
+		//todo change ad status
 
-		if err := v.payer.Pay(ctx, link.CreatedBy); err != nil {
-			v.closeAd(ctx, link, clickId) //not paid, not closed, not notified - OK, not paid closed and notified - OK
-			return
+		link, err := v.links.GetById(ctx, click.LinkId)
+		if err != nil {
+			v.payErrs <- fmt.Errorf("%s: %w", op, err)
 		}
 
-		v.completeAd(ctx, link, clickId) //paid, not completed, not notified - BAD, paid, completed. notified - OK //todo
+		if err := v.payer.Pay(ctx, link.CreatedBy); err != nil {
+			v.payErrs <- fmt.Errorf("%s: %w", op, err)
+		}
 	}()
 
-	return true
+	return nil
 }
 
 func (v *AdViewer) StartCleaningExpiredSessions(sessionLifetime time.Duration, timeout time.Duration, batchSize int64) {
@@ -134,32 +126,10 @@ func (v *AdViewer) StartCleaningExpiredSessions(sessionLifetime time.Duration, t
 		//todo notify
 		//for _, click := range toClose {
 		//	if link, ok := v.processedLinks.LoadAndDelete(click.Id); ok {
-		//		v.closeAd(context.Background(), link.(*model.Link), click.Id)
+		//		v.closeAdAndNotify(context.Background(), link.(*model.Link), click.Id)
 		//	}
 		//}
 
 		time.Sleep(timeout)
-	}
-}
-
-func (v *AdViewer) closeAd(ctx context.Context, link *model.Link, clickId int64) {
-	const op = "core.services.adViewer.CloseAd"
-
-	err := v.clicks.UpdateStatus(ctx, clickId, model.AdClosed)
-	if err != nil {
-		v.onCompleteErrs <- fmt.Errorf("%s: %w", op, err)
-	} else {
-		v.notifier.NotifyClosed(ctx, link, clickId)
-	}
-}
-
-func (v *AdViewer) completeAd(ctx context.Context, link *model.Link, clickId int64) {
-	const op = "core.services.adViewer.OnComplete"
-
-	err := v.clicks.UpdateStatus(ctx, clickId, model.AdCompleted)
-	if err != nil {
-		v.onCompleteErrs <- fmt.Errorf("%s: %w", op, err)
-	} else {
-		v.notifier.NotifyClosed(ctx, link, clickId)
 	}
 }

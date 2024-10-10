@@ -46,6 +46,19 @@ func (r *ClickRepo) Save(ctx context.Context, click *model.Click) (int64, error)
 	return id, nil
 }
 
+func (r *ClickRepo) GetById(ctx context.Context, id int64) (*model.Click, error) {
+	const op = "storage.postgres.ClickRepo.GetById"
+
+	query := `SELECT * FROM click WHERE id = $1`
+
+	click, err := clickFromRow(r.db.QueryRow(ctx, query, id))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return click, nil
+}
+
 func (r *ClickRepo) GetCountByLinkId(ctx context.Context, params model.GetClicksParams) (int64, error) {
 	const op = "storage.postgres.ClickRepo.GetCountByLinkId"
 

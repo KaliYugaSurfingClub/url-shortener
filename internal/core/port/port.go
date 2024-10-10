@@ -21,6 +21,7 @@ type ClickStorage interface {
 	UpdateStatus(ctx context.Context, id int64, status model.AdStatus) error
 	GetCountByLinkId(ctx context.Context, params model.GetClicksParams) (int64, error)
 	GetByLinkId(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error)
+	GetById(ctx context.Context, id int64) (*model.Click, error)
 	GetExpiredClickSessions(ctx context.Context, sessionLifetime time.Duration, count int64) ([]*model.Click, error)
 	BatchUpdateStatus(ctx context.Context, clicksIds []int64, status model.AdStatus) error
 }
@@ -28,13 +29,6 @@ type ClickStorage interface {
 type Transactor interface {
 	WithinTx(ctx context.Context, fn func(tx context.Context) error) error
 }
-
-type ClickNotifier interface {
-	NotifyOpen(ctx context.Context, link *model.Link, clickId int64)
-	NotifyClosed(ctx context.Context, link *model.Link, clickId int64)
-	NotifyCompleted(ctx context.Context, link *model.Link, clickId int64)
-}
-
 type Payer interface {
 	Pay(ctx context.Context, userId int64) error
 }

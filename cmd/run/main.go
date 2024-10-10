@@ -27,18 +27,10 @@ import (
 	"time"
 )
 
-type temporaryNotifier struct{}
+type TemporaryNotifier struct{}
 
-func (n *temporaryNotifier) NotifyOpen(_ context.Context, link *model.Link, clickId int64) {
-	fmt.Printf("open clickId - %d link - %+v", clickId, link)
-}
-
-func (n *temporaryNotifier) NotifyClosed(_ context.Context, link *model.Link, clickId int64) {
-	fmt.Printf("close clickId - %d link - %+v", clickId, link)
-}
-
-func (n *temporaryNotifier) NotifyCompleted(_ context.Context, link *model.Link, clickId int64) {
-	fmt.Printf("complete clickId - %d link - %+v", clickId, link)
+func (t *TemporaryNotifier) Notify(_ context.Context, eventType model.AdStatus, link *model.Link, click *model.Click) {
+	fmt.Printf("%s clickId - %+v link - %+v", eventType, click, link)
 }
 
 type tempPayer struct{}
@@ -70,7 +62,7 @@ func main() {
 	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
 	manager := linkManager.New(linkStore, clickStore)
 
-	adViewManager := adViewer.New(linkStore, clickStore, &tempPayer{}, &temporaryNotifier{}, transactor, 16, 16)
+	adViewManager := adViewer.New(linkStore, clickStore, &tempPayer{}, &TemporaryNotifier{}, transactor, 16, 16)
 	onCompleteErrs := adViewManager.OnCompleteErrs()
 
 	go func() {
