@@ -59,8 +59,6 @@ CREATE TABLE payment(
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE payment ADD CONSTRAINT no_direct_inserts CHECK (false);
-
 CREATE TABLE referral_payment(
     referred_user_id BIGINT REFERENCES person(id) NOT NULL
 ) INHERITS (payment);
@@ -125,5 +123,15 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_link_and_ad_video_on_session_open
 AFTER INSERT ON ad_session
 FOR EACH ROW EXECUTE FUNCTION update_link_and_ad_video_on_session_open();
+
+CREATE OR REPLACE FUNCTION prevent_insert_on_parent() RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'Inserts are not allowed on the parent payment table';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER prevent_insert_trigger
+    BEFORE INSERT ON payment
+    FOR EACH ROW EXECUTE FUNCTION prevent_insert_on_parent();
 
 COMMIT;
