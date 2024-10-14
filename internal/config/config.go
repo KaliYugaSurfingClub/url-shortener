@@ -28,10 +28,9 @@ type Service struct {
 }
 
 type Auth struct {
-	JWTSecret       string        `mapstructure:"jwt_secret"`
-	UserIdJWTKey    string        `mapstructure:"user_id_jwt_key"`
-	UserIdCookieKey string        `mapstructure:"user_id_cookie_name"`
-	CookieLifetime  time.Duration `mapstructure:"cookie_lifetime"`
+	JWTSecret       string `mapstructure:"jwt_secret"`
+	UserIdJWTKey    string `mapstructure:"user_id_jwt_key"`
+	UserIdCookieKey string `mapstructure:"user_id_cookie_name"`
 }
 
 func init() {

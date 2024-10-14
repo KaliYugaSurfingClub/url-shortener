@@ -3,11 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"html/template"
 	"log/slog"
-	"net/http"
 	"os"
 	"shortener/internal/config"
 	"shortener/internal/core/generator"
@@ -17,19 +13,19 @@ import (
 	"shortener/internal/core/services/linkShortener"
 	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/postgres/repository"
-	"shortener/internal/transport/rest/handler"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/handler/completeAdHandler"
 	"shortener/internal/transport/rest/handler/getLinkClicksHandler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
-	"shortener/internal/transport/rest/handler/openShortenedHandler"
+	"shortener/internal/transport/rest/handler/openLinkHandler"
 	"shortener/internal/transport/rest/handler/shortLinkHandler"
 	"shortener/internal/transport/rest/mw"
-	"time"
 )
 
 type FakePayer struct{}
 
 func (f FakePayer) Pay(ctx context.Context, clickId int64) error {
+	fmt.Println("oay")
 	return nil
 }
 
@@ -40,9 +36,9 @@ func (f FakeAdProvider) GetAdByMetadata(ctx context.Context, metadata model.Clic
 }
 
 func main() {
-	cfg := config.MustLoad()
+	fmt.Println("Hello World")
 
-	fmt.Println(cfg)
+	cfg := config.MustLoad()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
@@ -56,69 +52,29 @@ func main() {
 
 	repo := repository.New(db)
 
-	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
-	aliasManager, err := linkShortener.New(repo, aliasGenerator, 1)
-	manager := linkManager.New(repo)
+	aliasGenerator := generator.New([]rune("abcdefgr"), cfg.Service.GeneratedAliasLength) //todo alp
+	shortener, err := linkShortener.New(repo, aliasGenerator, 3)                          //todo triesToGenerate
+	linkService := linkManager.New(repo)
 
 	adViewManager := adViewer.New(repo, &FakePayer{}, &FakeAdProvider{})
 	onCompleteErrs := adViewManager.OnCompleteErrs()
 
+	//когда добавлю логер сделаю метод в который буду принимать интрефейс логгера и туда логировать ошибки
 	go func() {
 		for err := range onCompleteErrs {
 			log.Error(err.Error())
 		}
 	}()
 
-	jwtOpt := mw.JwtOptions{
-		UserIdKey:  "id",
-		CookieName: "user_id",
-		Secret:     []byte("sasha"),
+	handlers := rest.Handlers{
+		ShortLink:     shortLinkHandler.New(shortener),
+		GetUserLinks:  getUserLinksHandler.New(linkService),
+		GetLinkClicks: getLinkClicksHandler.New(linkService),
+		OpenLink:      openLinkHandler.New(adViewManager),
+		CompleteAd:    completeAdHandler.New(adViewManager),
 	}
 
-	r := chi.NewRouter()
-
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
-	r.Use(mw.NewLogger(log))
-
-	r.Route("/users", func(r chi.Router) {
-		r.Get("/login", handler.Login(jwtOpt, 24*time.Hour))
-	})
-
-	r.Route("/links", func(r chi.Router) {
-		r.Use(mw.CheckAuth(jwtOpt))
-		r.Post("/", shortLinkHandler.New(aliasManager, 255, 255, 255).Handler)
-		r.Get("/", getUserLinksHandler.New(manager).Handler)
-		r.Get("/{id}/clicks", getLinkClicksHandler.New(manager).Handler)
-	})
-
-	videoTemplate, err := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\ADVideo.html")
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	fileTemplate, err := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\ADFile.html")
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	templates := map[model.AdType]*template.Template{
-		model.AdTypeVideo: videoTemplate,
-		model.AdTypeFile:  fileTemplate,
-	}
-
-	r.Get("/{alias}", openShortenedHandler.New(adViewManager, templates, "http://localhost:8080/static/video", "http://localhost:8080").Handler)
-	r.Post("/{id}", completeAdHandler.New(adViewManager).Handler)
-	r.Get("/static/video", handler.StreamVideoHandler)
-
-	server := &http.Server{
-		Addr:              "0.0.0.0:8080",
-		Handler:           r,
-		WriteTimeout:      10 * time.Second,
-		ReadHeaderTimeout: 3 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		IdleTimeout:       60 * time.Second,
-	}
+	server := rest.New(handlers, cfg.Auth, cfg.HTTPServer, log)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Error("Unable to start server: ", err)

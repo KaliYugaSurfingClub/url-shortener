@@ -9,6 +9,8 @@ import (
 	"shortener/internal/transport/rest/response"
 )
 
+//todo refactor
+
 type JwtOptions struct {
 	Secret     []byte
 	CookieName string

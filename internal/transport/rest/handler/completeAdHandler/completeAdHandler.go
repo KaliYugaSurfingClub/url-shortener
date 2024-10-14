@@ -3,30 +3,28 @@ package completeAdHandler
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 	"net/http"
 	"shortener/internal/transport/rest/mw"
+	"shortener/internal/transport/rest/response"
 	"strconv"
 )
 
-type AdCompleter interface {
+type adCompleter interface {
 	CompleteAd(ctx context.Context, clickId int64)
 }
 
-type Handler struct {
-	completer AdCompleter
-}
+func New(completer adCompleter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log := mw.ExtractLog(r.Context(), "transport.rest.openShortenedHandler")
 
-func New(completer AdCompleter) *Handler {
-	return &Handler{completer: completer}
-}
+		clickId, err := strconv.ParseInt(chi.URLParam(r, "clickId"), 10, 64)
+		if err != nil {
+			log.Error(err.Error())
+		}
 
-func (h *Handler) Handler(_ http.ResponseWriter, r *http.Request) {
-	log := mw.ExtractLog(r.Context(), "transport.rest.openShortenedHandler")
+		go completer.CompleteAd(r.Context(), clickId)
 
-	clickId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		log.Error(err.Error())
+		render.JSON(w, r, response.WithOk())
 	}
-
-	go h.completer.CompleteAd(r.Context(), clickId)
 }

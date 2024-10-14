@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+//todo update
+
 func Login(jwtOpt mw.JwtOptions, lifetime time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mw.ExtractLog(r.Context(), "transport.rest.Login")

@@ -14,7 +14,7 @@ auth:
   jwt_secret: "secret"
   user_id_jwt_key: "user_id"
   user_id_cookie_name: "user_id"
-  cookie_lifetime: 24h
+
 
 
 
