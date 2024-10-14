@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"shortener/internal/config"
 	"shortener/internal/core/generator"
 	"shortener/internal/core/model"
 	"shortener/internal/core/services/adViewer"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
+	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/postgres/repository"
 	"shortener/internal/transport/rest/handler"
 	"shortener/internal/transport/rest/handler/completeAdHandler"
@@ -39,26 +40,21 @@ func (f FakeAdProvider) GetAdByMetadata(ctx context.Context, metadata model.Clic
 }
 
 func main() {
+	cfg := config.MustLoad()
+
+	fmt.Println(cfg)
+
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	dbURL := "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
-
-	poolCfg, err := pgxpool.ParseConfig(dbURL)
+	db, cancel, err := postgres.NewPgxPool(cfg.PostgresURL)
 	if err != nil {
-		fmt.Println("Unable to parse DATABASE_URL: ", err)
+		log.Error("unable to connect to postgres", mw.ErrAttr(err))
+		cancel()
 	}
-
-	db, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
-	if err != nil {
-		fmt.Println("Unable to create connection pool: ", err)
-	}
-
-	defer db.Close()
-
 	repo := repository.New(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
-	aliasManager, err := linkShortener.New(repo, aliasGenerator, 10)
+	aliasManager, err := linkShortener.New(repo, aliasGenerator, 1)
 	manager := linkManager.New(repo)
 
 	adViewManager := adViewer.New(repo, &FakePayer{}, &FakeAdProvider{})
@@ -108,13 +104,17 @@ func main() {
 		model.AdTypeFile:  fileTemplate,
 	}
 
-	r.Get("/{alias}", openShortenedHandler.New(adViewManager, templates, "http://localhost8080/static/video", "http://localhost8080").Handler)
+	r.Get("/{alias}", openShortenedHandler.New(adViewManager, templates, "http://localhost:8080/static/video", "http://localhost:8080").Handler)
 	r.Post("/{id}", completeAdHandler.New(adViewManager).Handler)
 	r.Get("/static/video", handler.StreamVideoHandler)
 
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: r,
+		Addr:              "0.0.0.0:8080",
+		Handler:           r,
+		WriteTimeout:      10 * time.Second,
+		ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	if err := server.ListenAndServe(); err != nil {
