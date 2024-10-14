@@ -3,7 +3,7 @@ package getUserLinksHandler
 import (
 	"context"
 	"github.com/go-chi/render"
-	"github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/thoas/go-funk"
 	"net/http"
 	"shortener/internal/core/model"
@@ -67,58 +67,30 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 type UrlParams struct {
-	Type        string `schema:"type" json:"type"`
-	Constraints string `schema:"constraints" json:"constraints"`
-	SortBy      string `schema:"sort_by" json:"sort_by"`
+	Archived string `schema:"archived" json:"archived"`
 	request.Pagination
-	request.OrderDirection
+	request.Sort
 }
 
 func (p *UrlParams) Validate() error {
 	rules := []*validation.FieldRules{
-		validation.Field(&p.Type, validation.By(valkit.ContainsInMap(types))),
-		validation.Field(&p.Constraints, validation.By(valkit.ContainsInMap(constraints))),
-		validation.Field(&p.SortBy, validation.By(valkit.ContainsInMap(sortBy))),
+		validation.Field(&p.Archived, validation.By(valkit.ContainsInMap(request.BoolMap))),
 	}
 
-	return request.Validate(p, rules, p.OrderRules(), p.PaginationRules())
+	return request.Validate(p, rules, p.SortRules(sortBy), p.PaginationRules())
 }
 
 func (p *UrlParams) ToModel() model.GetLinksParams {
 	return model.GetLinksParams{
-		Filter: model.LinkFilter{
-			Type:        types[p.Type],
-			Constraints: constraints[p.Constraints],
-		},
-		Sort: model.LinkSort{
-			By:    sortBy[p.SortBy],
-			Order: p.OrderToModel(),
-		},
+		Archived:   request.BoolMap[p.Archived],
+		Sort:       p.SortToModel(sortBy),
 		Pagination: p.PaginationToModel(),
 	}
 }
 
-var types = map[string]model.LinkType{
-	"any":      model.TypeAny,
-	"active":   model.TypeActive,
-	"inactive": model.TypeInactive,
-	"expired":  model.TypeExpired,
-	"archived": model.TypeArchived,
-}
-
-var constraints = map[string]model.LinkConstraints{
-	"any":     model.ConstraintAny,
-	"clicks":  model.ConstraintClicks,
-	"date":    model.ConstraintDate,
-	"with":    model.ConstraintWith,
-	"without": model.ConstraintWithout,
-}
-
-var sortBy = map[string]model.LinkSortBy{
-	"created_at":       model.SortByCreatedAt,
-	"custom_name":      model.SortByCustomName,
-	"clicks_count":     model.SortByClicksCount,
-	"last_access":      model.SortByLastAccess,
-	"expiration_date":  model.SortByExpirationDate,
-	"left_clicksCount": model.SortByLeftClicksCount,
+var sortBy = map[string]model.SortBy{
+	"created_at":   model.SortByCreatedAt,
+	"custom_name":  model.SortLinksByCustomName,
+	"clicks_count": model.SortLinksByClicksCount,
+	"last_access":  model.SortLinksByLastAccess,
 }

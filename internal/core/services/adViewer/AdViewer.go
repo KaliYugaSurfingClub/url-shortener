@@ -3,36 +3,26 @@ package adViewer
 import (
 	"context"
 	"fmt"
-	"github.com/thoas/go-funk"
+	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
-	"time"
 )
 
 //todo shutdown
 
 type AdViewer struct {
-	links       port.LinkStorage
-	clicks      port.ClickStorage
-	payer       port.Payer
-	transactor  port.Transactor
-	payErrs     chan error
-	cleanerErrs chan error
+	repo       port.Repository
+	payer      port.ClickPayer
+	adProvider port.AdProvider
+	payErrs    chan error
 }
 
-func New(
-	linksStorage port.LinkStorage,
-	clicksStorage port.ClickStorage,
-	payer port.Payer,
-	transactor port.Transactor,
-	payErrsBuffer int,
-) *AdViewer {
+func New(repo port.Repository, payer port.ClickPayer, adProvider port.AdProvider) *AdViewer {
 	return &AdViewer{
-		links:      linksStorage,
-		clicks:     clicksStorage,
-		transactor: transactor,
+		repo:       repo,
 		payer:      payer,
-		payErrs:    make(chan error, payErrsBuffer),
+		adProvider: adProvider,
+		payErrs:    make(chan error),
 	}
 }
 
@@ -40,96 +30,48 @@ func (v *AdViewer) OnCompleteErrs() <-chan error {
 	return v.payErrs
 }
 
-func (v *AdViewer) CleanerErrs() <-chan error {
-	return v.cleanerErrs
-}
+func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.ClickMetadata) (*model.AdPage, error) {
+	const op = "core.services.adViewer.GetAdPage"
 
-func (v *AdViewer) OnClick(ctx context.Context, alias string, metadata model.ClickMetadata) (original string, clickId int64, err error) {
-	const op = "core.services.adViewer.OnClick"
-
-	var link *model.Link
-
-	err = v.transactor.WithinTx(ctx, func(ctx context.Context) error {
-		link, err = v.links.GetActiveByAlias(ctx, alias)
-		if err != nil {
-			return err
-		}
-
-		if err = v.links.UpdateLastAccess(ctx, link.Id, metadata.AccessTime); err != nil {
-			return err
-		}
-
-		link.ClicksCount++
-		link.LastAccessTime = &metadata.AccessTime
-
-		clickToSave := &model.Click{
-			LinkId:   link.Id,
-			Status:   model.AdStarted,
-			Metadata: metadata,
-		}
-
-		clickId, err = v.clicks.Save(ctx, clickToSave)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
+	link, err := v.repo.GetLinkByAlias(ctx, alias)
 	if err != nil {
-		return "", 0, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return link.Original, clickId, nil
-}
-
-func (v *AdViewer) OnComplete(ctx context.Context, clickId int64) error {
-	const op = "core.services.adViewer.OnComplete"
-
-	//todo use cache to optimize this
-	//todo or join
-	click, err := v.clicks.GetById(ctx, clickId)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+	if link.Archived {
+		return nil, fmt.Errorf("%s: %w", op, core.ErrOpenArchivedLink)
 	}
 
-	go func() {
-		//todo change ad status
+	adSourceId, err := v.adProvider.GetAdByMetadata(ctx, metadata)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-		link, err := v.links.GetById(ctx, click.LinkId)
-		if err != nil {
-			v.payErrs <- fmt.Errorf("%s: %w", op, err)
-		}
+	clickToSave := model.Click{
+		LinkId:     link.Id,
+		Metadata:   metadata,
+		AdSourceId: adSourceId,
+	}
 
-		if err := v.payer.Pay(ctx, link.CreatedBy); err != nil {
-			v.payErrs <- fmt.Errorf("%s: %w", op, err)
-		}
-	}()
+	click, err := v.repo.CreateClick(ctx, clickToSave)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-	return nil
+	adPage := &model.AdPage{
+		AdType:     click.AdType,
+		Original:   link.Original,
+		ClickId:    click.Id,
+		AdSourceId: adSourceId,
+	}
+
+	return adPage, nil
 }
 
-func (v *AdViewer) StartCleaningExpiredSessions(sessionLifetime time.Duration, timeout time.Duration, batchSize int64) {
-	//todo check if payment was done and mark as completed
-	for {
-		toClose, err := v.clicks.GetExpiredClickSessions(context.Background(), sessionLifetime, batchSize)
-		if err != nil {
-			v.cleanerErrs <- err
-		}
+func (v *AdViewer) CompleteAd(_ context.Context, clickId int64) {
+	const op = "core.services.adViewer.CompleteAd"
 
-		toCloseIds := funk.Map(toClose, func(click *model.Click) int64 { return click.Id }).([]int64)
-
-		if err = v.clicks.BatchUpdateStatus(context.Background(), toCloseIds, model.AdClosed); err != nil {
-			v.cleanerErrs <- err
-		}
-
-		//todo notify
-		//for _, click := range toClose {
-		//	if link, ok := v.processedLinks.LoadAndDelete(click.Id); ok {
-		//		v.closeAdAndNotify(context.Background(), link.(*model.Link), click.Id)
-		//	}
-		//}
-
-		time.Sleep(timeout)
+	if err := v.payer.Pay(context.Background(), clickId); err != nil {
+		v.payErrs <- fmt.Errorf("%s: %w", op, err)
 	}
 }

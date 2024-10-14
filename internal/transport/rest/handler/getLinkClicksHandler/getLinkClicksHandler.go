@@ -35,8 +35,6 @@ func New(provider provider) *Handler {
 }
 
 func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-
 	log := mw.ExtractLog(r.Context(), "transport.rest.GetLinkClicks")
 
 	urlParams := &UrlParams{}
@@ -45,6 +43,8 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.WithInternalError())
 		return
 	}
+
+	defer r.Body.Close()
 
 	if err := urlParams.Validate(); err != nil {
 		log.Error("invalid url urlParams", mw.ErrAttr(err))
@@ -75,18 +75,22 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+var sortBy = map[string]model.SortBy{
+	"access_time": model.SortClickByAccessTime,
+}
+
 type UrlParams struct {
-	request.OrderDirection
+	request.Sort
 	request.Pagination
 }
 
 func (p *UrlParams) Validate() error {
-	return request.Validate(p, p.OrderRules(), p.PaginationRules())
+	return request.Validate(p, p.SortRules(sortBy), p.PaginationRules())
 }
 
 func (p *UrlParams) ToModel() model.GetClicksParams {
 	return model.GetClicksParams{
-		Order:      p.OrderToModel(),
+		Sort:       p.SortToModel(sortBy),
 		Pagination: p.PaginationToModel(),
 	}
 }

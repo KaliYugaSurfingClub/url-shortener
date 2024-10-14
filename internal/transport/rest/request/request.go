@@ -41,10 +41,27 @@ func (p *Pagination) PaginationToModel() (res model.Pagination) {
 	return res
 }
 
-// DO NOT RENAME!!!
-
-type OrderDirection struct {
+type Sort struct {
 	Order string `schema:"order" json:"order"`
+	By    string `schema:"sort_by" json:"sort_by"`
+}
+
+func (s *Sort) SortRules(sortBy map[string]model.SortBy) []*validation.FieldRules {
+	return []*validation.FieldRules{
+		validation.Field(&s.Order, validation.By(valkit.ContainsInMap(OrderMap))),
+		validation.Field(&s.By, validation.By(valkit.ContainsInMap(sortBy))),
+	}
+}
+
+func (s *Sort) SortToModel(sortBy map[string]model.SortBy) (res model.Sort) {
+	return model.Sort{
+		Order: OrderMap[s.Order],
+		By:    sortBy[s.By],
+	}
+}
+
+func Validate(ptr any, rules ...[]*validation.FieldRules) error {
+	return validation.ValidateStruct(ptr, slices.Concat(rules...)...)
 }
 
 var OrderMap = map[string]model.Order{
@@ -52,16 +69,7 @@ var OrderMap = map[string]model.Order{
 	"desc": model.Desc,
 }
 
-func (o *OrderDirection) OrderRules() []*validation.FieldRules {
-	return []*validation.FieldRules{
-		validation.Field(&o.Order, validation.By(valkit.ContainsInMap(OrderMap))),
-	}
-}
-
-func (o *OrderDirection) OrderToModel() (res model.Order) {
-	return OrderMap[o.Order]
-}
-
-func Validate(ptr any, rules ...[]*validation.FieldRules) error {
-	return validation.ValidateStruct(ptr, slices.Concat(rules...)...)
+var BoolMap = map[string]bool{
+	"true":  true,
+	"false": false,
 }

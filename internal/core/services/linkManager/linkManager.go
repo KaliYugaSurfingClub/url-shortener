@@ -9,25 +9,23 @@ import (
 )
 
 type LinkManager struct {
-	links  port.LinkStorage
-	clicks port.ClickStorage
+	storage port.Repository
 }
 
-func New(linkStorage port.LinkStorage, clicksStorage port.ClickStorage) *LinkManager {
+func New(storage port.Repository) *LinkManager {
 	return &LinkManager{
-		links:  linkStorage,
-		clicks: clicksStorage,
+		storage: storage,
 	}
 }
 
 func (m *LinkManager) GetUserLinks(ctx context.Context, params model.GetLinksParams) (links []*model.Link, totalCount int64, err error) {
 	defer utils.WithinOp("core.linkManager.GetUserLinks", &err)
 
-	if totalCount, err = m.links.GetCountByUserId(ctx, params); err != nil {
+	if totalCount, err = m.storage.GetLinksCountByParams(ctx, params); err != nil {
 		return nil, 0, err
 	}
 
-	if links, err = m.links.GetByUserId(ctx, params); err != nil {
+	if links, err = m.storage.GetLinksByParams(ctx, params); err != nil {
 		return nil, 0, err
 	}
 
@@ -37,7 +35,7 @@ func (m *LinkManager) GetUserLinks(ctx context.Context, params model.GetLinksPar
 func (m *LinkManager) GetLinkClicks(ctx context.Context, params model.GetClicksParams) (clicks []*model.Click, totalCount int64, err error) {
 	defer utils.WithinOp("core.linkManager.GetLinkClicks", &err)
 
-	ok, err := m.links.DoesLinkBelongUser(ctx, params.LinkId, params.UserId)
+	ok, err := m.storage.DoesLinkBelongsToUser(ctx, params.LinkId, params.UserId)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -45,11 +43,11 @@ func (m *LinkManager) GetLinkClicks(ctx context.Context, params model.GetClicksP
 		return nil, 0, core.ErrLinkDoesNotBelongsUser
 	}
 
-	if totalCount, err = m.clicks.GetCountByLinkId(ctx, params); err != nil {
+	if totalCount, err = m.storage.GetClicksCountByParams(ctx, params); err != nil {
 		return nil, 0, err
 	}
 
-	if clicks, err = m.clicks.GetByLinkId(ctx, params); err != nil {
+	if clicks, err = m.storage.GetClicksByParams(ctx, params); err != nil {
 		return nil, 0, err
 	}
 

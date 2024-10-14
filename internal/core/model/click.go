@@ -5,14 +5,18 @@ import (
 	"time"
 )
 
-type AdStatus string
+type AdType string
 
-// todo parse from db
 const (
-	AdStarted   = "started"
-	AdClosed    = "closed"
-	AdWatched   = "watched"
-	AdCompleted = "completed"
+	AdTypeVideo = "video"
+	AdTypeFile  = "file"
+)
+
+type ClickStatus string
+
+const (
+	ClickStatusOpened    = "opened"
+	ClickStatusCompleted = "completed"
 )
 
 type ClickMetadata struct {
@@ -22,15 +26,17 @@ type ClickMetadata struct {
 }
 
 type Click struct {
-	Id       int64
-	LinkId   int64
-	Status   AdStatus
-	Metadata ClickMetadata
+	Id         int64
+	LinkId     int64
+	AdSourceId int64
+	AdType     AdType
+	Status     ClickStatus
+	Metadata   ClickMetadata
 }
 
 type GetClicksParams struct {
 	Pagination Pagination
-	Order      Order
+	Sort       Sort
 	UserId     int64
 	LinkId     int64
 }

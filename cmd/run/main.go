@@ -15,10 +15,9 @@ import (
 	"shortener/internal/core/services/adViewer"
 	"shortener/internal/core/services/linkManager"
 	"shortener/internal/core/services/linkShortener"
-	"shortener/internal/storage/postgres/clickRepo"
-	"shortener/internal/storage/postgres/linkRepo"
-	"shortener/internal/storage/transaction"
+	"shortener/internal/storage/postgres/repository"
 	"shortener/internal/transport/rest/handler"
+	"shortener/internal/transport/rest/handler/completeAdHandler"
 	"shortener/internal/transport/rest/handler/getLinkClicksHandler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
 	"shortener/internal/transport/rest/handler/openShortenedHandler"
@@ -27,15 +26,17 @@ import (
 	"time"
 )
 
-type TemporaryNotifier struct{}
+type FakePayer struct{}
 
-func (t *TemporaryNotifier) Notify(_ context.Context, eventType model.AdStatus, link *model.Link, click *model.Click) {
-	fmt.Printf("%s clickId - %+v link - %+v", eventType, click, link)
+func (f FakePayer) Pay(ctx context.Context, clickId int64) error {
+	return nil
 }
 
-type tempPayer struct{}
+type FakeAdProvider struct{}
 
-func (t *tempPayer) Pay(context.Context, int64) error { return nil }
+func (f FakeAdProvider) GetAdByMetadata(ctx context.Context, metadata model.ClickMetadata) (int64, error) {
+	return 1, nil
+}
 
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -54,29 +55,18 @@ func main() {
 
 	defer db.Close()
 
-	linkStore := linkRepo.New(db)
-	clickStore := clickRepo.New(db)
-	transactor := transaction.NewTransactor(db)
+	repo := repository.New(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
-	aliasManager, err := linkShortener.New(linkStore, aliasGenerator, 10)
-	manager := linkManager.New(linkStore, clickStore)
+	aliasManager, err := linkShortener.New(repo, aliasGenerator, 10)
+	manager := linkManager.New(repo)
 
-	adViewManager := adViewer.New(linkStore, clickStore, &tempPayer{}, &TemporaryNotifier{}, transactor, 16, 16)
+	adViewManager := adViewer.New(repo, &FakePayer{}, &FakeAdProvider{})
 	onCompleteErrs := adViewManager.OnCompleteErrs()
 
 	go func() {
 		for err := range onCompleteErrs {
-			fmt.Println(err)
-		}
-	}()
-
-	go adViewManager.StartCleaningExpiredSessions(1*time.Minute, 1*time.Minute, 100)
-	cleanerErrs := adViewManager.CleanerErrs()
-
-	go func() {
-		for err := range cleanerErrs {
-			fmt.Println(err)
+			log.Error(err.Error())
 		}
 	}()
 
@@ -103,10 +93,23 @@ func main() {
 		r.Get("/{id}/clicks", getLinkClicksHandler.New(manager).Handler)
 	})
 
-	t, _ := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\AD.html")
+	videoTemplate, err := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\ADVideo.html")
+	if err != nil {
+		log.Error(err.Error())
+	}
 
-	r.Get("/{alias}", openShortenedHandler.New(adViewManager, "/static/video", t).Handler)
+	fileTemplate, err := template.ParseFiles("C:\\Users\\leono\\Desktop\\prog\\go\\shortener\\adPages\\ADFile.html")
+	if err != nil {
+		log.Error(err.Error())
+	}
 
+	templates := map[model.AdType]*template.Template{
+		model.AdTypeVideo: videoTemplate,
+		model.AdTypeFile:  fileTemplate,
+	}
+
+	r.Get("/{alias}", openShortenedHandler.New(adViewManager, templates, "http://localhost8080/static/video", "http://localhost8080").Handler)
+	r.Post("/{id}", completeAdHandler.New(adViewManager).Handler)
 	r.Get("/static/video", handler.StreamVideoHandler)
 
 	server := &http.Server{

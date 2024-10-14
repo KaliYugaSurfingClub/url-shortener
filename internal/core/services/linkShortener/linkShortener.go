@@ -10,12 +10,12 @@ import (
 )
 
 type LinkShortener struct {
-	storage         port.LinkStorage
+	storage         port.Repository
 	generator       port.Generator
 	triesToGenerate int
 }
 
-func New(storage port.LinkStorage, generator port.Generator, triesToGenerate int) (*LinkShortener, error) {
+func New(storage port.Repository, generator port.Generator, triesToGenerate int) (*LinkShortener, error) {
 	if triesToGenerate <= 0 {
 		return nil, errors.New("triesToGenerate can not be less than 0")
 	}
@@ -42,7 +42,7 @@ func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (*model.Li
 		toSave.CustomName = toSave.Alias
 	}
 
-	return s.storage.Save(ctx, *toSave)
+	return s.storage.CreateLink(ctx, *toSave)
 }
 
 func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (*model.Link, error) {
@@ -55,7 +55,7 @@ func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link)
 			toSave.CustomName = toSave.Alias
 		}
 
-		saved, err := s.storage.Save(ctx, *toSave)
+		saved, err := s.storage.CreateLink(ctx, *toSave)
 		if err == nil {
 			return saved, nil
 		}

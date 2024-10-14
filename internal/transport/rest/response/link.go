@@ -13,8 +13,6 @@ type Link struct {
 	CustomName     string     `json:"customName"`
 	ClicksCount    int64      `json:"clicksCount"`
 	LastAccessTime *time.Time `json:"lastAccessTime,omitempty"`
-	ExpirationDate *time.Time `json:"expirationDate,omitempty"`
-	ClicksToExpire *int64     `json:"clicksToExpire,omitempty"`
 	Archived       bool       `json:"archived"`
 	CreatedAt      time.Time  `json:"createdAt"`
 }
@@ -28,8 +26,6 @@ func LinkFromModel(link *model.Link) Link {
 		CustomName:     link.CustomName,
 		ClicksCount:    link.ClicksCount,
 		LastAccessTime: link.LastAccessTime,
-		ExpirationDate: link.ExpirationDate,
-		ClicksToExpire: link.ClicksToExpire,
 		Archived:       link.Archived,
 		CreatedAt:      link.CreatedAt,
 	}

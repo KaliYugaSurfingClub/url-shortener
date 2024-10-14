@@ -37,3 +37,21 @@ func (b *BaseBuilder) Paginate(params model.Pagination) Builder {
 
 	return b
 }
+
+func (b *BaseBuilder) Sort(columnNames map[model.SortBy]string, sort model.Sort) Builder {
+	column, ok := columnNames[sort.By]
+	if !ok {
+		panic("column not found")
+	}
+
+	b.Query.WriteString(" ORDER BY ")
+	b.Query.WriteString(column)
+	b.Query.WriteString(postgresOrder[sort.Order])
+
+	return b
+}
+
+var postgresOrder = map[model.Order]string{
+	model.Desc: "DESC",
+	model.Asc:  "ASC",
+}

@@ -10,66 +10,72 @@ import (
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
+	"strconv"
 	"strings"
 	"time"
 )
 
-type recorder interface {
-	OnClick(ctx context.Context, alias string, metadata model.ClickMetadata) (string, int64, error)
-}
-
-type adProvider interface {
-	Get(ctx context.Context) (string, error)
+type AdPageProvider interface {
+	GetAdPage(ctx context.Context, alias string, metadata model.ClickMetadata) (*model.AdPage, error)
 }
 
 type Handler struct {
-	recorder       recorder
-	videoURL       string
-	adPageTemplate *template.Template
+	adPageProvider   AdPageProvider
+	adTypeToTemplate map[model.AdType]*template.Template
+	AdSourceHost     string
+	CallBackURL      string
 }
 
 func New(
-	recorder recorder,
-	videoURL string,
-	adPageTemplate *template.Template,
+	adPageProvider AdPageProvider,
+	adTypeToTemplate map[model.AdType]*template.Template,
+	AdSourceHost string,
+	CallBackURL string,
 ) *Handler {
 	return &Handler{
-		recorder:       recorder,
-		videoURL:       videoURL,
-		adPageTemplate: adPageTemplate,
+		adTypeToTemplate: adTypeToTemplate,
+		adPageProvider:   adPageProvider,
+		AdSourceHost:     AdSourceHost,
+		CallBackURL:      CallBackURL,
 	}
 }
 
-type PageVariables struct {
-	ClickId  int64
-	Original string
-	VideoURL string
+type pageVars struct {
+	Original    string
+	CallBackURL string
+	AdURL       string
 }
 
 func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 	log := mw.ExtractLog(r.Context(), "transport.rest.openShortenedHandler")
 
 	alias := chi.URLParam(r, "alias")
+
 	metadata := model.ClickMetadata{
 		UserAgent:  r.UserAgent(),
 		AccessTime: time.Now(),
 		IP:         getClientIP(r),
 	}
 
-	original, clickId, err := h.recorder.OnClick(r.Context(), alias, metadata)
+	adPage, err := h.adPageProvider.GetAdPage(r.Context(), alias, metadata)
 	if errors.Is(err, core.ErrLinkNotFound) {
 		log.Info(err.Error())
 		w.Write([]byte("not found")) //todo
 		return
 	}
-
-	variables := PageVariables{
-		Original: original,
-		ClickId:  clickId,
-		VideoURL: h.videoURL,
+	if err != nil {
+		log.Info(err.Error())
+		w.Write([]byte("internal error")) //todo
+		return
 	}
 
-	err = h.adPageTemplate.Execute(w, variables)
+	pv := pageVars{
+		Original:    adPage.Original,
+		AdURL:       h.AdSourceHost + "/" + strconv.FormatInt(adPage.AdSourceId, 10),
+		CallBackURL: h.CallBackURL + "/" + strconv.FormatInt(adPage.ClickId, 10),
+	}
+
+	err = h.adTypeToTemplate[adPage.AdType].Execute(w, pv)
 	if err != nil {
 		log.Info(err.Error())
 		w.Write([]byte("internal error")) //todo

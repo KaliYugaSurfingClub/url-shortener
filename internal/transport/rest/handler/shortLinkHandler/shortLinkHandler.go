@@ -11,8 +11,6 @@ import (
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
 	"shortener/internal/transport/rest/response"
-	"shortener/internal/utils/valkit"
-	"time"
 )
 
 type LinkShortener interface {
@@ -60,7 +58,7 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errors.Is(err, core.ErrCustomNameExists) {
-		render.JSON(w, r, response.WithError(core.ErrAliasExists))
+		render.JSON(w, r, response.WithError(core.ErrCustomNameExists))
 		return
 	}
 	if err != nil {
@@ -74,21 +72,17 @@ func (h *Handler) Handler(w http.ResponseWriter, r *http.Request) {
 
 // todo add save with lifetime
 type request struct {
-	Original       string     `json:"original"`
-	Alias          string     `json:"alias"`
-	CustomName     string     `json:"customName"`
-	ClicksToExpire *int64     `json:"clicksToExpire,omitempty"`
-	ExpirationDate *time.Time `json:"expirationDate,omitempty"`
+	Original   string `json:"original"`
+	Alias      string `json:"alias"`
+	CustomName string `json:"customName"`
 }
 
 func (r *request) ToModel(userId int64) *model.Link {
 	return &model.Link{
-		CreatedBy:      userId,
-		Original:       r.Original,
-		Alias:          r.Alias,
-		CustomName:     r.CustomName,
-		ExpirationDate: r.ExpirationDate,
-		ClicksToExpire: r.ClicksToExpire,
+		CreatedBy:  userId,
+		Original:   r.Original,
+		Alias:      r.Alias,
+		CustomName: r.CustomName,
 	}
 }
 
@@ -97,7 +91,5 @@ func (h *Handler) validateRequest(r *request) error {
 		validation.Field(&r.Original, validation.Required, validation.Length(1, h.OriginalMaxLen), is.URL),
 		validation.Field(&r.Alias, validation.Length(1, h.AliasMaxLen)),
 		validation.Field(&r.CustomName, validation.Length(1, h.CustomNameMaxLen)),
-		validation.Field(&r.ClicksToExpire, validation.By(valkit.IsPositive())),
-		validation.Field(&r.ExpirationDate, validation.By(valkit.IsFutureDate())),
 	)
 }
