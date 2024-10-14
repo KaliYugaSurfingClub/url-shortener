@@ -51,6 +51,9 @@ func main() {
 		log.Error("unable to connect to postgres", mw.ErrAttr(err))
 		cancel()
 	}
+
+	defer cancel()
+
 	repo := repository.New(db)
 
 	aliasGenerator := generator.New([]rune("abcdefgr"), 4)
