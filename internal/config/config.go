@@ -1,45 +1,64 @@
 package config
 
 import (
-	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 	"log"
 	"os"
 	"time"
 )
 
 type Config struct {
-	Env         string `yaml:"env" env-default:"local"`
-	StoragePath string `yaml:"storage_path" env-required:"true"`
-	HTTPServer  `yaml:"http_server"`
+	PostgresURL string     `mapstructure:"postgres_url"`
+	HTTPServer  HTTPServer `mapstructure:"http_server"`
+	Service     Service    `mapstructure:"service"`
+	Auth        Auth       `mapstructure:"auth"`
 }
 
 type HTTPServer struct {
-	Address     string        `yaml:"address" env-default:"localhost:8080"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"4s"`
-	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+	Address           string        `mapstructure:"address"`
+	WriteTimeout      time.Duration `mapstructure:"write_timeout"`
+	ReadHeaderTimeout time.Duration `mapstructure:"read_header_timeout"`
+	ReadTimeout       time.Duration `mapstructure:"read_timeout"`
+	IdleTimeout       time.Duration `mapstructure:"idle_timeout"`
+}
+
+type Service struct {
+	GeneratedAliasLength int `mapstructure:"generated_alias_length"`
+}
+
+type Auth struct {
+	JWTSecret       string `mapstructure:"jwt_secret"`
+	UserIdJWTKey    string `mapstructure:"user_id_jwt_key"`
+	UserIdCookieKey string `mapstructure:"user_id_cookie_name"`
 }
 
 func init() {
 	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found")
+		log.Fatal("unable to load .env file")
 	}
 }
 
 func MustLoad() *Config {
 	configPath, exists := os.LookupEnv("CONFIG_PATH")
 	if !exists {
-		log.Fatal("CONFIG_PATH is not set")
+		log.Fatal(".env file with CONFIG_PATH variable not found")
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("config file does not exist: %s", configPath)
+		log.Fatalf("Yaml config file does not exist: %s", configPath)
 	}
 
-	cfg := Config{}
+	viper.SetConfigFile(configPath)
 
-	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Fatalf("cannot read config: %s", err)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file: %s", err)
+	}
+
+	var cfg Config
+
+	if err := viper.Unmarshal(&cfg); err != nil {
+		log.Fatalf("Unable to decode into struct: %v", err)
 	}
 
 	return &cfg

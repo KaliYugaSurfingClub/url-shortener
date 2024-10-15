@@ -1,0 +1,22 @@
+postgres_url: "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
+
+http_server:
+  address: "0.0.0.0:8080"
+  write_timeout: 10s
+  read_header_timeout: 3s
+  read_timeout: 15s
+  idle_timeout: 60s
+
+service:
+  generated_alias_length: 4
+
+auth:
+  jwt_secret: "secret"
+  user_id_jwt_key: "user_id"
+  user_id_cookie_name: "user_id"
+
+
+
+
+
+
