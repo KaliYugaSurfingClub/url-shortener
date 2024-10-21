@@ -2,12 +2,9 @@ package openLinkHandler
 
 import (
 	"context"
-	"errors"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"net"
 	"net/http"
-	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
 	"shortener/internal/transport/rest/response"
@@ -39,23 +36,17 @@ func New(adPageProvider AdPageProvider) http.HandlerFunc {
 		}
 
 		adPage, err := adPageProvider.GetAdPage(r.Context(), alias, metadata)
-		if errors.Is(err, core.ErrLinkNotFound) {
-			log.Info(err.Error())
-			w.Write([]byte("not found")) //todo
-			return
-		}
 		if err != nil {
-			log.Info(err.Error())
-			w.Write([]byte("internal error")) //todo
+			response.Error(w, log, err)
 			return
 		}
 
-		render.JSON(w, r, response.WithData(data{
+		response.Ok(w, data{
 			Original:   adPage.Original,
 			ClickId:    adPage.ClickId,
 			AdSourceId: adPage.AdSourceId,
 			AdType:     string(adPage.AdType),
-		}))
+		})
 	}
 }
 

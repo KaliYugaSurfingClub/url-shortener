@@ -2,12 +2,9 @@ package getLinkClicksHandler
 
 import (
 	"context"
-	"errors"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"github.com/thoas/go-funk"
 	"net/http"
-	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
 	"shortener/internal/transport/rest/request"
@@ -30,40 +27,29 @@ func New(provider provider) http.HandlerFunc {
 
 		urlParams := &UrlParams{}
 		if err := request.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
-			log.Error("unable to decode URL urlParams", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithInternalError())
+			//todo decode error
 			return
 		}
 
-		defer r.Body.Close()
-
 		if err := urlParams.Validate(); err != nil {
-			log.Error("invalid url urlParams", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithValidationErrors(err))
+			response.Error(w, log, err)
 			return
 		}
 
 		params := urlParams.ToModel()
-		//todo
 		params.UserId, _ = mw.ExtractUserID(r.Context())
 		params.LinkId, _ = strconv.ParseInt(chi.URLParam(r, "linkId"), 10, 64)
 
 		clicks, totalCount, err := provider.GetLinkClicks(r.Context(), params)
-		if errors.Is(err, core.ErrLinkNotFound) {
-			log.Info("link not found", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithError(core.ErrLinkNotFound))
-			return
-		}
 		if err != nil {
-			log.Error("cannot get user links", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithInternalError())
+			response.Error(w, log, err)
 			return
 		}
 
-		render.JSON(w, r, response.WithData(data{
+		response.Ok(w, data{
 			TotalCount: totalCount,
 			Clicks:     funk.Map(clicks, response.ClickFromModel).([]response.Click),
-		}))
+		})
 	}
 }
 

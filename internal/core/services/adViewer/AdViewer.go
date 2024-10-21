@@ -2,13 +2,11 @@ package adViewer
 
 import (
 	"context"
-	"fmt"
-	"shortener/internal/core"
+	"errors"
+	"shortener/errs"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
 )
-
-//todo shutdown
 
 type AdViewer struct {
 	repo       port.Repository
@@ -35,16 +33,15 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 
 	link, err := v.repo.GetLinkByAlias(ctx, alias)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err)
 	}
-
 	if link.Archived {
-		return nil, fmt.Errorf("%s: %w", op, core.ErrOpenArchivedLink)
+		return nil, errs.E(op, errors.New("someone tries to open archived link"), errs.NotExist)
 	}
 
 	adSourceId, err := v.adProvider.GetAdByMetadata(ctx, metadata)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err)
 	}
 
 	clickToSave := model.Click{
@@ -55,7 +52,7 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 
 	click, err := v.repo.CreateClick(ctx, clickToSave)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err)
 	}
 
 	adPage := &model.AdPage{
@@ -72,6 +69,6 @@ func (v *AdViewer) CompleteAd(_ context.Context, clickId int64) {
 	const op = "core.services.adViewer.CompleteAd"
 
 	if err := v.payer.Pay(context.Background(), clickId); err != nil {
-		v.payErrs <- fmt.Errorf("%s: %w", op, err)
+		v.payErrs <- errs.E(op, err)
 	}
 }

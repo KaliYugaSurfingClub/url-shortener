@@ -39,8 +39,8 @@ func IsPositive() func(value any) error {
 			if v != nil && *v <= 0 {
 				return err
 			}
-		default:
-			return errors.New("internal error must be a int")
+		default: //todo mb panic
+			return errors.New("internal error: value must be a int")
 		}
 
 		return nil
