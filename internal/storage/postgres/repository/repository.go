@@ -3,14 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"shortener/errs"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/postgres/transaction"
-	"shortener/internal/utils"
 )
 
 type Repository struct {
@@ -44,16 +43,16 @@ func (r *Repository) CreateLink(ctx context.Context, link model.Link) (*model.Li
 	if name, ok := postgres.ParseConstraintError(err); ok {
 		switch name {
 		case "link_alias_key":
-			return nil, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
+			return nil, errs.E(op, err, errs.Exist, core.AliasExistsCode) //todo
 		case "link_custom_name_person_id_key":
-			return nil, fmt.Errorf("%s: %w", op, core.ErrCustomNameExists)
+			return nil, errs.E(op, err, errs.Exist, core.CustomNameExistsCode)
 		default:
-			return nil, fmt.Errorf("%s: unexpected constraint error %w", op, err)
+			return nil, errs.E(op, err, errs.Unanticipated)
 		}
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return &link, nil
@@ -77,10 +76,10 @@ func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.L
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
+		return nil, errs.E(op, err, errs.NotExist, errs.Code("alias does not exist"))
 	}
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return link, nil
@@ -100,8 +99,8 @@ const GetLinksQuery = `
 	GROUP BY l.id, l.person_id, l.original, l.alias, l.custom_name, l.archived, l.created_at
 `
 
-func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinksParams) (_ []*model.Link, err error) {
-	defer utils.WithinOp("storage.postgres.repository.GetLinksByParams", &err)
+func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinksParams) ([]*model.Link, error) {
+	const op = "storage.postgres.repository.GetLinksByParams"
 
 	scanFunc := func(link *model.Link, row pgx.Row) error {
 		return row.Scan(
@@ -120,6 +119,7 @@ func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinks
 		scanFunc:   scanFunc,
 	}
 
+	//todo add op
 	return getEntityByParams(ctx, opt)
 }
 
@@ -132,7 +132,7 @@ func (r *Repository) GetLinksCountByParams(ctx context.Context, params model.Get
 
 	err = r.queries.QueryRow(ctx, GetLinksCountQuery, params.UserId, params.Archived).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return 0, errs.E(op, err, errs.Database)
 	}
 
 	return count, nil
@@ -150,10 +150,10 @@ func (r *Repository) DoesLinkBelongsToUser(ctx context.Context, linkId, userId i
 	err = r.queries.QueryRow(ctx, doesLinkBelongsUserQuery, linkId, userId).Scan(&belongs)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
+		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, errs.E(op, err, errs.Database)
 	}
 
 	return belongs, nil
@@ -168,7 +168,7 @@ func (r *Repository) DeleteLink(ctx context.Context, linkId int64) error {
 
 	_, err := r.queries.Exec(ctx, deleteLinkQuery, linkId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return errs.E(op, err, errs.Database)
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func (r *Repository) CreateClick(ctx context.Context, click model.Click) (*model
 
 	err := row.Scan(&click.Id, &click.AdType)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return &click, nil
@@ -218,8 +218,8 @@ const getClicksByParamsQuery = `
 		JOIN ad_source AS s ON c.ad_source_id = s.id
 `
 
-func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClicksParams) (_ []*model.Click, err error) {
-	defer utils.WithinOp("storage.postgres.repository.GetClicksByParams", &err)
+func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error) {
+	const op = "storage.postgres.repository.GetClicksByParams"
 
 	scanFunc := func(click *model.Click, row pgx.Row) error {
 		return row.Scan(
@@ -238,6 +238,7 @@ func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClic
 		scanFunc:   scanFunc,
 	}
 
+	//todo
 	return getEntityByParams(ctx, opt)
 }
 
@@ -250,7 +251,7 @@ func (r *Repository) GetClicksCountByParams(ctx context.Context, params model.Ge
 
 	err = r.queries.QueryRow(ctx, getClicksCountQuery, params.LinkId).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return 0, errs.E(op, err, errs.Database)
 	}
 
 	return count, nil

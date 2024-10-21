@@ -2,7 +2,6 @@ package getUserLinksHandler
 
 import (
 	"context"
-	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/thoas/go-funk"
 	"net/http"
@@ -28,14 +27,12 @@ func New(provider LinksProvider) http.HandlerFunc {
 
 		urlParams := &UrlParams{}
 		if err := request.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
-			log.Error("unable to decode URL urlParams", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithInternalError())
+			//todo decode error
 			return
 		}
 
 		if err := urlParams.Validate(); err != nil {
-			log.Error("invalid url urlParams", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithValidationErrors(err))
+			response.Error(w, log, err)
 			return
 		}
 
@@ -44,15 +41,14 @@ func New(provider LinksProvider) http.HandlerFunc {
 
 		links, totalCount, err := provider.GetUserLinks(r.Context(), params)
 		if err != nil {
-			log.Error("cannot get user links", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithInternalError())
+			response.Error(w, log, err)
 			return
 		}
 
-		render.JSON(w, r, response.WithData(data{
+		response.Ok(w, data{
 			TotalCount: totalCount,
 			Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
-		}))
+		})
 	}
 }
 

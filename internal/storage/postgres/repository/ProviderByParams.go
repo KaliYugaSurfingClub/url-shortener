@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v5"
+	"shortener/errs"
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres/builder"
 	"shortener/internal/storage/postgres/transaction"
@@ -31,7 +31,7 @@ func getEntityByParams[T any](ctx context.Context, opt getEntityByParamsOptions[
 
 	rows, err := opt.db.Query(ctx, query, opt.args...)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	defer rows.Close()
@@ -40,14 +40,14 @@ func getEntityByParams[T any](ctx context.Context, opt getEntityByParamsOptions[
 		entity := new(T)
 
 		if err := opt.scanFunc(entity, rows); err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return nil, errs.E(op, err, errs.Database)
 		}
 
 		entities = append(entities, entity)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+	if err = rows.Err(); err != nil {
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return entities, nil

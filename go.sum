@@ -3,6 +3,12 @@ github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg6
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/toml v1.4.0 h1:kuoIxZQy2WRRk1pttg9asf+WVv6tWQuBNVmK8+nqPr0=
 github.com/BurntSushi/toml v1.4.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/KaliYugaSurfingClub/errs v0.0.0-20241017044352-ff22b33eed2e h1:EJWd993af/g4c5jikES65vMWP4uJHGwl7OGS2/G06xE=
+github.com/KaliYugaSurfingClub/errs v0.0.0-20241017044352-ff22b33eed2e/go.mod h1:h6YLqfBCS0104e/lukPdBR7At6sif9FikeNnKqMU3Pk=
+github.com/KaliYugaSurfingClub/errs v0.0.0-20241017052309-90f2429ae292 h1:Hp7s0/jYRc++bNaah5nL6iYaV976GBbK6wn7wVBkHwI=
+github.com/KaliYugaSurfingClub/errs v0.0.0-20241017052309-90f2429ae292/go.mod h1:h6YLqfBCS0104e/lukPdBR7At6sif9FikeNnKqMU3Pk=
+github.com/KaliYugaSurfingClub/errs v0.0.0-20241017062106-d377e48b6c69 h1:hq7rK4fETVHXKPP82hDfDxIrGTaGllJ9B3c2u8zA9EY=
+github.com/KaliYugaSurfingClub/errs v0.0.0-20241017062106-d377e48b6c69/go.mod h1:h6YLqfBCS0104e/lukPdBR7At6sif9FikeNnKqMU3Pk=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=

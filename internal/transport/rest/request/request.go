@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/schema"
 	"math"
 	"net/url"
+	"shortener/errs"
 	"shortener/internal/core/model"
 	"shortener/internal/utils/valkit"
 	"slices"
@@ -12,11 +13,13 @@ import (
 )
 
 func DecodeURLParams(dst any, query url.Values) error {
+	const op = "transport.rest.request.DecodeURLParams"
+
 	decoder := schema.NewDecoder()
 	decoder.IgnoreUnknownKeys(true)
 
 	if err := decoder.Decode(dst, query); err != nil {
-		return err
+		return errs.E(op, err, errs.InvalidRequest)
 	}
 
 	return nil
@@ -61,7 +64,11 @@ func (s *Sort) SortToModel(sortBy map[string]model.SortBy) (res model.Sort) {
 }
 
 func Validate(ptr any, rules ...[]*validation.FieldRules) error {
-	return validation.ValidateStruct(ptr, slices.Concat(rules...)...)
+	return errs.E(
+		"transport.rest.request.Validate",
+		validation.ValidateStruct(ptr, slices.Concat(rules...)...),
+		errs.Validation,
+	)
 }
 
 var OrderMap = map[string]model.Order{
