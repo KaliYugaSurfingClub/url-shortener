@@ -43,7 +43,7 @@ func (r *Repository) CreateLink(ctx context.Context, link model.Link) (*model.Li
 	if name, ok := postgres.ParseConstraintError(err); ok {
 		switch name {
 		case "link_alias_key":
-			return nil, errs.E(op, err, errs.Exist, core.AliasExistsCode) //todo
+			return nil, errs.E(op, err, errs.Exist, core.AliasExistsCode)
 		case "link_custom_name_person_id_key":
 			return nil, errs.E(op, err, errs.Exist, core.CustomNameExistsCode)
 		default:
@@ -119,8 +119,12 @@ func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinks
 		scanFunc:   scanFunc,
 	}
 
-	//todo add op
-	return getEntityByParams(ctx, opt)
+	links, err := getEntityByParams(ctx, opt)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return links, nil
 }
 
 const GetLinksCountQuery = `
@@ -238,8 +242,12 @@ func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClic
 		scanFunc:   scanFunc,
 	}
 
-	//todo
-	return getEntityByParams(ctx, opt)
+	clicks, err := getEntityByParams(ctx, opt)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return clicks, nil
 }
 
 const getClicksCountQuery = `

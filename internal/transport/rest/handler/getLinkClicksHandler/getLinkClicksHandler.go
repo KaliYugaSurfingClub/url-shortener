@@ -27,7 +27,7 @@ func New(provider provider) http.HandlerFunc {
 
 		urlParams := &UrlParams{}
 		if err := request.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
-			//todo decode error
+			response.Error(w, log, err)
 			return
 		}
 

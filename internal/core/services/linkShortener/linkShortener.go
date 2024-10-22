@@ -72,7 +72,7 @@ func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link)
 			return nil, errs.E(op, err)
 		}
 		//some internal error
-		if !errs.KindIs(err, errs.Exist) {
+		if errs.KindIs(err, errs.Database) {
 			return nil, errs.E(op, err)
 		}
 	}

@@ -10,18 +10,14 @@ import (
 
 const (
 	statusOk    = "Ok"
-	statusError = "errorResponse"
+	statusError = "Error"
 )
 
 type response struct {
-	Status string        `json:"status"`
-	Data   any           `json:"data,omitempty"`
-	Error  errorResponse `json:"error,omitempty"`
-}
-
-type errorResponse struct {
-	Code       string `json:"code"`
-	Validation error  `json:"fields,omitempty"`
+	Status     string `json:"status"`
+	Data       any    `json:"data,omitempty"`
+	ErrorCode  string `json:"code,omitempty"`
+	Validation error  `json:"validation,omitempty"`
 }
 
 func Ok(w http.ResponseWriter, data any) {
@@ -78,10 +74,8 @@ func nilErrorResponse(w http.ResponseWriter, log *slog.Logger) {
 
 func unknownErrorResponse(w http.ResponseWriter, log *slog.Logger, err error) {
 	resp := response{
-		Status: statusError,
-		Error: errorResponse{
-			Code: errs.Unanticipated.String(),
-		},
+		Status:    statusError,
+		ErrorCode: errs.Unanticipated.String(),
 	}
 
 	log.Error("Unknown Error", slog.String("msg", err.Error()))
@@ -93,36 +87,29 @@ func unknownErrorResponse(w http.ResponseWriter, log *slog.Logger, err error) {
 }
 
 func newErrResponse(err *errs.Error) response {
-	const internalCode string = "internal server error"
 	const validationCode string = "validation error"
 
 	switch err.Kind {
-	case errs.Internal, errs.Database:
+	case errs.Other, errs.Unanticipated, errs.Internal, errs.Database:
 		return response{
-			Status: statusError,
-			Error: errorResponse{
-				Code: internalCode,
-			},
+			Status:    statusError,
+			ErrorCode: err.Kind.String(),
 		}
 	case errs.Validation:
 		return response{
-			Status: statusError,
-			Error: errorResponse{
-				Code:       validationCode,
-				Validation: err,
-			},
+			Status:     statusError,
+			ErrorCode:  validationCode,
+			Validation: errs.TopError(err),
 		}
 	default:
 		code := string(err.Code)
 		if code == "" {
-			code = err.Kind.String()
+			code = errs.TopError(err).Error()
 		}
 
 		return response{
-			Status: statusError,
-			Error: errorResponse{
-				Code: code,
-			},
+			Status:    statusError,
+			ErrorCode: code,
 		}
 	}
 }

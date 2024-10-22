@@ -1,9 +1,11 @@
-package request
+package rest
 
 import (
+	"encoding/json"
 	"github.com/go-ozzo/ozzo-validation"
 	"github.com/gorilla/schema"
 	"math"
+	"net/http"
 	"net/url"
 	"shortener/errs"
 	"shortener/internal/core/model"
@@ -11,6 +13,16 @@ import (
 	"slices"
 	"strconv"
 )
+
+func DecodeJSON(dst any, r *http.Request) error {
+	const op = "transport.rest.request.DecodeJSON"
+
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		return errs.E(op, err, errs.InvalidRequest)
+	}
+
+	return nil
+}
 
 func DecodeURLParams(dst any, query url.Values) error {
 	const op = "transport.rest.request.DecodeURLParams"
@@ -26,7 +38,7 @@ func DecodeURLParams(dst any, query url.Values) error {
 }
 
 type Pagination struct {
-	Page string `schema:"page" json:"page"`
+	Page string `schema:"page" json:"page"` // parse url params to string for custom validation errors
 	Size string `schema:"size" json:"size"`
 }
 

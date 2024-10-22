@@ -47,8 +47,8 @@ func New(handlers Handlers, JWTOptions config.Auth, httpOptions config.HTTPServe
 		r.Get("/{linkId}/clicks", handlers.GetLinkClicks)
 	})
 
-	router.Get("/{alias}", handlers.OpenLink)
-	router.Post("/complete/{clickId}", handlers.CompleteAd)
+	router.Get("/open/{alias}", handlers.OpenLink)
+	router.Post("/complete", handlers.CompleteAd)
 
 	server := &http.Server{
 		Handler:           router,

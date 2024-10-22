@@ -176,7 +176,7 @@ func OpStack(err error) []string {
 		var errsError *Error
 
 		if errors.As(e, &errsError) && errsError.Op != "" {
-			stack = append(stack, e.Error())
+			stack = append(stack, string(errsError.Op))
 		}
 
 		e = errors.Unwrap(e)

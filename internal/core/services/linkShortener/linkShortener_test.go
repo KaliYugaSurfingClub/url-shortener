@@ -8,7 +8,6 @@ import (
 	"shortener/internal/core/model"
 	"slices"
 	"testing"
-	"time"
 )
 
 var someErr = errors.New("some error")
@@ -188,33 +187,4 @@ func TestGenerateNameAsAnotherUser(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, existingNameAsAnotherUser, saved.Alias)
 	require.Equal(t, existingNameAsAnotherUser, saved.CustomName)
-}
-
-// todo mocks
-func (s *linkStorage) GetActiveByAlias(ctx context.Context, alias string) (*model.Link, error) {
-	panic("implement me")
-}
-
-func (s *linkStorage) AliasExists(ctx context.Context, alias string) (bool, error) {
-	panic("implement me")
-}
-
-func (s *linkStorage) CustomNameExists(ctx context.Context, customName string, userId int64) (bool, error) {
-	panic("implement me")
-}
-
-func (s *linkStorage) UpdateLastAccess(ctx context.Context, id int64, timestamp time.Time) error {
-	panic("implement me")
-}
-
-func (s *linkStorage) GetCountByUserId(ctx context.Context, userId int64, params model.LinkFilter) (int64, error) {
-	panic("implement me")
-}
-
-func (s *linkStorage) GetByUserId(ctx context.Context, userId int64, params model.GetLinksParams) ([]*model.Link, error) {
-	panic("implement me")
-}
-
-func (s *linkStorage) GetById(ctx context.Context, id int64) (*model.Link, error) {
-	panic("implement me")
 }

@@ -52,14 +52,13 @@ func main() {
 
 	repo := repository.New(db)
 
-	aliasGenerator := generator.New([]rune("abcdefgr"), cfg.Service.GeneratedAliasLength) //todo alp
-	shortener, err := linkShortener.New(repo, aliasGenerator, 3)                          //todo triesToGenerate
+	aliasGenerator := generator.New([]rune("i"), cfg.Service.GeneratedAliasLength) //todo alp
+	shortener, err := linkShortener.New(repo, aliasGenerator, 3)                   //todo triesToGenerate
 	linkService := linkManager.New(repo)
 
 	adViewManager := adViewer.New(repo, &FakePayer{}, &FakeAdProvider{})
 	onCompleteErrs := adViewManager.OnCompleteErrs()
 
-	//когда добавлю логер сделаю метод в который буду принимать интрефейс логгера и туда логировать ошибки
 	go func() {
 		for err := range onCompleteErrs {
 			log.Error(err.Error())

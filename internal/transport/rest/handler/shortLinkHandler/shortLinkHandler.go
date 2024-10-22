@@ -2,11 +2,11 @@ package shortLinkHandler
 
 import (
 	"context"
-	"github.com/KaliYugaSurfingClub/errs/response"
 	"github.com/go-chi/render"
 	"net/http"
 	"shortener/internal/core/model"
 	"shortener/internal/transport/rest/mw"
+	"shortener/internal/transport/rest/response"
 )
 
 type LinkShortener interface {
@@ -32,8 +32,6 @@ func New(shortener LinkShortener) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mw.ExtractLog(r.Context(), "transport.Rest.ShortLink")
 		userId, _ := mw.ExtractUserID(r.Context())
-
-		defer r.Body.Close()
 
 		req := &request{}
 		if err := render.Decode(r, req); err != nil {
