@@ -15,7 +15,7 @@ type provider interface {
 	GetLinkClicks(ctx context.Context, params model.GetClicksParams) ([]*model.Click, int64, error)
 }
 
-type data struct {
+type response struct {
 	TotalCount int64
 	Clicks     []rest.Click
 }
@@ -45,7 +45,7 @@ func New(provider provider) http.HandlerFunc {
 			return
 		}
 
-		rest.Ok(w, data{
+		rest.Ok(w, response{
 			TotalCount: totalCount,
 			Clicks:     funk.Map(clicks, rest.ClickFromModel).([]rest.Click),
 		})

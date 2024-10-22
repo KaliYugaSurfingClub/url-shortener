@@ -16,8 +16,7 @@ type AdPageProvider interface {
 	GetAdPage(ctx context.Context, alias string, metadata model.ClickMetadata) (*model.AdPage, error)
 }
 
-type data struct {
-	Original   string `json:"original"`
+type response struct {
 	AdType     string `json:"type"`
 	ClickId    int64  `json:"click_id"`
 	AdSourceId int64  `json:"ad_source_id"`
@@ -40,8 +39,7 @@ func New(adPageProvider AdPageProvider) http.HandlerFunc {
 			return
 		}
 
-		rest.Ok(w, data{
-			Original:   adPage.Original,
+		rest.Ok(w, response{
 			ClickId:    adPage.ClickId,
 			AdSourceId: adPage.AdSourceId,
 			AdType:     string(adPage.AdType),

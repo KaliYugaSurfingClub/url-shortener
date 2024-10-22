@@ -7,14 +7,16 @@ import (
 	"shortener/internal/transport/rest/mw"
 )
 
-//todo send original
-
 type adCompleter interface {
-	CompleteAd(ctx context.Context, clickId int64)
+	CompleteAd(ctx context.Context, clickId int64) (string, error)
 }
 
 type request struct {
-	ClickId int64 `json:"clickId"`
+	ClickId int64 `json:"click_id"`
+}
+
+type response struct {
+	Original string `json:"original"`
 }
 
 func New(completer adCompleter) http.HandlerFunc {
@@ -27,6 +29,14 @@ func New(completer adCompleter) http.HandlerFunc {
 			return
 		}
 
-		go completer.CompleteAd(r.Context(), req.ClickId)
+		original, err := completer.CompleteAd(r.Context(), req.ClickId)
+		if err != nil {
+			rest.Error(w, log, err)
+			return
+		}
+
+		rest.Ok(w, response{
+			Original: original,
+		})
 	}
 }

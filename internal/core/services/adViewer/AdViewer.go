@@ -57,7 +57,6 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 
 	adPage := &model.AdPage{
 		AdType:     click.AdType,
-		Original:   link.Original,
 		ClickId:    click.Id,
 		AdSourceId: adSourceId,
 	}
@@ -65,10 +64,19 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 	return adPage, nil
 }
 
-func (v *AdViewer) CompleteAd(_ context.Context, clickId int64) {
+func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) (string, error) {
 	const op = "core.services.adViewer.CompleteAd"
 
-	if err := v.payer.Pay(context.Background(), clickId); err != nil {
-		v.payErrs <- errs.E(op, err)
+	go func() {
+		if err := v.payer.Pay(context.Background(), clickId); err != nil {
+			v.payErrs <- errs.E(op, err)
+		}
+	}()
+
+	original, err := v.repo.GetOriginalByClickId(ctx, clickId) //todo if archived
+	if err != nil {
+		return "", errs.E(op, err)
 	}
+
+	return original, nil
 }

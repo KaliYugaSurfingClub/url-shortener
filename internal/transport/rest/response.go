@@ -104,7 +104,7 @@ func newErrResponse(err *errs.Error) response {
 	default:
 		code := string(err.Code)
 		if code == "" {
-			code = errs.TopError(err).Error()
+			code = err.Kind.String()
 		}
 
 		return response{

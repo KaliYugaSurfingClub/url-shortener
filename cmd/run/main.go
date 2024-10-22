@@ -25,7 +25,7 @@ import (
 type FakePayer struct{}
 
 func (f FakePayer) Pay(ctx context.Context, clickId int64) error {
-	fmt.Println("oay")
+	fmt.Println("pay")
 	return nil
 }
 
@@ -36,8 +36,6 @@ func (f FakeAdProvider) GetAdByMetadata(ctx context.Context, metadata model.Clic
 }
 
 func main() {
-	fmt.Println("Hello World")
-
 	cfg := config.MustLoad()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))

@@ -76,13 +76,34 @@ func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.L
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, errs.E(op, err, errs.NotExist, errs.Code("alias does not exist"))
+		return nil, errs.E(op, err, errs.NotExist)
 	}
 	if err != nil {
 		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return link, nil
+}
+
+const GetLinkByClickIdQuery = `
+	SELECT l.original
+	FROM 
+	( SELECT link_id FROM click WHERE id = $1 ) AS c
+	JOIN link AS l ON l.id = link_id
+`
+
+func (r *Repository) GetOriginalByClickId(ctx context.Context, clickId int64) (original string, err error) {
+	const op = "storage.postgres.repository.GetOriginalByClickId"
+
+	err = r.queries.QueryRow(ctx, GetLinkByClickIdQuery, clickId).Scan(&original)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", errs.E(op, err, errs.NotExist)
+	}
+	if err != nil {
+		return "", errs.E(op, err, errs.Database)
+	}
+
+	return original, nil
 }
 
 const GetLinksQuery = `

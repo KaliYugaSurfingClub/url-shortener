@@ -15,7 +15,7 @@ type LinksProvider interface {
 	GetUserLinks(ctx context.Context, params model.GetLinksParams) ([]*model.Link, int64, error)
 }
 
-type data struct {
+type response struct {
 	TotalCount int64       `json:"TotalCount"`
 	Links      []rest.Link `json:"links"`
 }
@@ -44,7 +44,7 @@ func New(provider LinksProvider) http.HandlerFunc {
 			return
 		}
 
-		rest.Ok(w, data{
+		rest.Ok(w, response{
 			TotalCount: totalCount,
 			Links:      funk.Map(links, rest.LinkFromModel).([]rest.Link),
 		})
