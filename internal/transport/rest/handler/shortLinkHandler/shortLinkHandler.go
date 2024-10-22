@@ -2,11 +2,10 @@ package shortLinkHandler
 
 import (
 	"context"
-	"github.com/go-chi/render"
 	"net/http"
 	"shortener/internal/core/model"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/mw"
-	"shortener/internal/transport/rest/response"
 )
 
 type LinkShortener interface {
@@ -34,17 +33,17 @@ func New(shortener LinkShortener) http.HandlerFunc {
 		userId, _ := mw.ExtractUserID(r.Context())
 
 		req := &request{}
-		if err := render.Decode(r, req); err != nil {
-			//todo decode error
+		if err := rest.DecodeJSON(req, r); err != nil {
+			rest.Error(w, log, err)
 			return
 		}
 
 		shorted, err := shortener.Short(r.Context(), *req.ToModel(userId))
 		if err != nil {
-			response.Error(w, log, err)
+			rest.Error(w, log, err)
 			return
 		}
 
-		response.Ok(w, shorted)
+		rest.Ok(w, shorted)
 	}
 }

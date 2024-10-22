@@ -6,9 +6,8 @@ import (
 	"github.com/thoas/go-funk"
 	"net/http"
 	"shortener/internal/core/model"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/mw"
-	"shortener/internal/transport/rest/request"
-	"shortener/internal/transport/rest/response"
 	"strconv"
 )
 
@@ -18,7 +17,7 @@ type provider interface {
 
 type data struct {
 	TotalCount int64
-	Clicks     []response.Click
+	Clicks     []rest.Click
 }
 
 func New(provider provider) http.HandlerFunc {
@@ -26,13 +25,13 @@ func New(provider provider) http.HandlerFunc {
 		log := mw.ExtractLog(r.Context(), "transport.rest.GetLinkClicks")
 
 		urlParams := &UrlParams{}
-		if err := request.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
-			response.Error(w, log, err)
+		if err := rest.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
+			rest.Error(w, log, err)
 			return
 		}
 
 		if err := urlParams.Validate(); err != nil {
-			response.Error(w, log, err)
+			rest.Error(w, log, err)
 			return
 		}
 
@@ -42,24 +41,24 @@ func New(provider provider) http.HandlerFunc {
 
 		clicks, totalCount, err := provider.GetLinkClicks(r.Context(), params)
 		if err != nil {
-			response.Error(w, log, err)
+			rest.Error(w, log, err)
 			return
 		}
 
-		response.Ok(w, data{
+		rest.Ok(w, data{
 			TotalCount: totalCount,
-			Clicks:     funk.Map(clicks, response.ClickFromModel).([]response.Click),
+			Clicks:     funk.Map(clicks, rest.ClickFromModel).([]rest.Click),
 		})
 	}
 }
 
 type UrlParams struct {
-	request.Sort
-	request.Pagination
+	rest.Sort
+	rest.Pagination
 }
 
 func (p *UrlParams) Validate() error {
-	return request.Validate(p, p.SortRules(sortBy), p.PaginationRules())
+	return rest.Validate(p, p.SortRules(sortBy), p.PaginationRules())
 }
 
 func (p *UrlParams) ToModel() model.GetClicksParams {

@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 	"shortener/internal/core/model"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/mw"
-	"shortener/internal/transport/rest/response"
 	"strings"
 	"time"
 )
@@ -26,7 +26,6 @@ type data struct {
 func New(adPageProvider AdPageProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mw.ExtractLog(r.Context(), "transport.rest.openShortenedHandler")
-
 		alias := chi.URLParam(r, "alias")
 
 		metadata := model.ClickMetadata{
@@ -37,11 +36,11 @@ func New(adPageProvider AdPageProvider) http.HandlerFunc {
 
 		adPage, err := adPageProvider.GetAdPage(r.Context(), alias, metadata)
 		if err != nil {
-			response.Error(w, log, err)
+			rest.Error(w, log, err)
 			return
 		}
 
-		response.Ok(w, data{
+		rest.Ok(w, data{
 			Original:   adPage.Original,
 			ClickId:    adPage.ClickId,
 			AdSourceId: adPage.AdSourceId,

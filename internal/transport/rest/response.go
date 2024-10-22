@@ -1,4 +1,4 @@
-package response
+package rest
 
 import (
 	"encoding/json"
@@ -14,10 +14,10 @@ const (
 )
 
 type response struct {
-	Status     string `json:"status"`
-	Data       any    `json:"data,omitempty"`
-	ErrorCode  string `json:"code,omitempty"`
-	Validation error  `json:"validation,omitempty"`
+	Status string `json:"status"`
+	Data   any    `json:"data,omitempty"`
+	Code   string `json:"code,omitempty"`
+	Msg    string `json:"msg,omitempty"`
 }
 
 func Ok(w http.ResponseWriter, data any) {
@@ -74,8 +74,8 @@ func nilErrorResponse(w http.ResponseWriter, log *slog.Logger) {
 
 func unknownErrorResponse(w http.ResponseWriter, log *slog.Logger, err error) {
 	resp := response{
-		Status:    statusError,
-		ErrorCode: errs.Unanticipated.String(),
+		Status: statusError,
+		Code:   errs.Unanticipated.String(),
 	}
 
 	log.Error("Unknown Error", slog.String("msg", err.Error()))
@@ -92,14 +92,14 @@ func newErrResponse(err *errs.Error) response {
 	switch err.Kind {
 	case errs.Other, errs.Unanticipated, errs.Internal, errs.Database:
 		return response{
-			Status:    statusError,
-			ErrorCode: err.Kind.String(),
+			Status: statusError,
+			Code:   err.Kind.String(),
 		}
-	case errs.Validation:
+	case errs.Validation, errs.InvalidRequest:
 		return response{
-			Status:     statusError,
-			ErrorCode:  validationCode,
-			Validation: errs.TopError(err),
+			Status: statusError,
+			Code:   validationCode,
+			Msg:    errs.TopError(err).Error(),
 		}
 	default:
 		code := string(err.Code)
@@ -108,8 +108,8 @@ func newErrResponse(err *errs.Error) response {
 		}
 
 		return response{
-			Status:    statusError,
-			ErrorCode: code,
+			Status: statusError,
+			Code:   code,
 		}
 	}
 }

@@ -6,9 +6,8 @@ import (
 	"github.com/thoas/go-funk"
 	"net/http"
 	"shortener/internal/core/model"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/mw"
-	"shortener/internal/transport/rest/request"
-	"shortener/internal/transport/rest/response"
 	"shortener/internal/utils/valkit"
 )
 
@@ -17,8 +16,8 @@ type LinksProvider interface {
 }
 
 type data struct {
-	TotalCount int64           `json:"TotalCount"`
-	Links      []response.Link `json:"links"`
+	TotalCount int64       `json:"TotalCount"`
+	Links      []rest.Link `json:"links"`
 }
 
 func New(provider LinksProvider) http.HandlerFunc {
@@ -26,13 +25,13 @@ func New(provider LinksProvider) http.HandlerFunc {
 		log := mw.ExtractLog(r.Context(), "transport.rest.GetUserLinks")
 
 		urlParams := &UrlParams{}
-		if err := request.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
-			//todo decode error
+		if err := rest.DecodeURLParams(urlParams, r.URL.Query()); err != nil {
+			rest.Error(w, log, err)
 			return
 		}
 
 		if err := urlParams.Validate(); err != nil {
-			response.Error(w, log, err)
+			rest.Error(w, log, err)
 			return
 		}
 
@@ -41,34 +40,34 @@ func New(provider LinksProvider) http.HandlerFunc {
 
 		links, totalCount, err := provider.GetUserLinks(r.Context(), params)
 		if err != nil {
-			response.Error(w, log, err)
+			rest.Error(w, log, err)
 			return
 		}
 
-		response.Ok(w, data{
+		rest.Ok(w, data{
 			TotalCount: totalCount,
-			Links:      funk.Map(links, response.LinkFromModel).([]response.Link),
+			Links:      funk.Map(links, rest.LinkFromModel).([]rest.Link),
 		})
 	}
 }
 
 type UrlParams struct {
 	Archived string `schema:"archived" json:"archived"`
-	request.Pagination
-	request.Sort
+	rest.Pagination
+	rest.Sort
 }
 
 func (p *UrlParams) Validate() error {
 	rules := []*validation.FieldRules{
-		validation.Field(&p.Archived, validation.By(valkit.ContainsInMap(request.BoolMap))),
+		validation.Field(&p.Archived, validation.By(valkit.ContainsInMap(rest.BoolMap))),
 	}
 
-	return request.Validate(p, rules, p.SortRules(sortBy), p.PaginationRules())
+	return rest.Validate(p, rules, p.SortRules(sortBy), p.PaginationRules())
 }
 
 func (p *UrlParams) ToModel() model.GetLinksParams {
 	return model.GetLinksParams{
-		Archived:   request.BoolMap[p.Archived],
+		Archived:   rest.BoolMap[p.Archived],
 		Sort:       p.SortToModel(sortBy),
 		Pagination: p.PaginationToModel(),
 	}
