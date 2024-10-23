@@ -13,13 +13,13 @@ import (
 	"shortener/internal/core/services/linkShortener"
 	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/postgres/repository"
-	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/handler/completeAdHandler"
 	"shortener/internal/transport/rest/handler/getLinkClicksHandler"
 	"shortener/internal/transport/rest/handler/getUserLinksHandler"
 	"shortener/internal/transport/rest/handler/openLinkHandler"
 	"shortener/internal/transport/rest/handler/shortLinkHandler"
 	"shortener/internal/transport/rest/mw"
+	"shortener/internal/transport/rest/server"
 )
 
 type FakePayer struct{}
@@ -63,7 +63,7 @@ func main() {
 		}
 	}()
 
-	handlers := rest.Handlers{
+	handlers := server.Handlers{
 		ShortLink:     shortLinkHandler.New(shortener),
 		GetUserLinks:  getUserLinksHandler.New(linkService),
 		GetLinkClicks: getLinkClicksHandler.New(linkService),
@@ -71,7 +71,7 @@ func main() {
 		CompleteAd:    completeAdHandler.New(adViewManager),
 	}
 
-	server := rest.New(handlers, cfg.Auth, cfg.HTTPServer, log)
+	server := server.New(handlers, cfg.Auth, cfg.HTTPServer, log)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Error("Unable to start server: ", err)

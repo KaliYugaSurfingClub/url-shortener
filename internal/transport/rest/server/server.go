@@ -1,4 +1,4 @@
-package rest
+package server
 
 import (
 	"github.com/go-chi/chi/v5"
@@ -27,11 +27,11 @@ func New(handlers Handlers, JWTOptions config.Auth, httpOptions config.HTTPServe
 		CookieName: JWTOptions.UserIdCookieKey,
 		UserIdKey:  JWTOptions.UserIdJWTKey,
 	}
-	checkAuthMw := mw.CheckAuth(jwtOpt)
 
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
 	router.Use(mw.NewLogger(log))
+	router.Use(mw.InjectUserIdToCtx(jwtOpt))
 
 	//todo temporary
 	router.Route("/users", func(r chi.Router) {
@@ -41,7 +41,7 @@ func New(handlers Handlers, JWTOptions config.Auth, httpOptions config.HTTPServe
 	//
 
 	router.Route("/links", func(r chi.Router) {
-		r.Use(checkAuthMw)
+		r.Use(mw.CheckAuth)
 		r.Post("/", handlers.ShortLink)
 		r.Get("/", handlers.GetUserLinks)
 		r.Get("/{linkId}/clicks", handlers.GetLinkClicks)
