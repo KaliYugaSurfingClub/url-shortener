@@ -50,8 +50,8 @@ func main() {
 
 	repo := repository.New(db)
 
-	aliasGenerator := generator.New([]rune("abcdefg"), cfg.Service.GeneratedAliasLength)
-	shortener, err := linkShortener.New(repo, aliasGenerator, 3)
+	aliasGenerator := generator.New([]rune(cfg.Service.Alp), cfg.Service.GeneratedAliasLength)
+	shortener, err := linkShortener.New(repo, aliasGenerator, cfg.Service.TriesToGenerate)
 	linkService := linkManager.New(repo)
 
 	adViewManager := adViewer.New(repo, &FakePayer{}, &FakeAdProvider{})
