@@ -112,18 +112,24 @@ func (e *Error) Error() string {
 //
 // If Kind is not specified or Other, we set it to the Kind of
 // the underlying error.
-func E(op Op, err error, args ...interface{}) error {
-	if err == nil {
-		return nil
-	}
+func E(args ...interface{}) error {
+	e := new(Error)
 
-	e := &Error{
-		Op:  op,
-		Err: err,
+	if len(args) == 0 {
+		panic("call to errs.E with no arguments")
 	}
 
 	for _, arg := range args {
 		switch arg := arg.(type) {
+		case Op:
+			e.Op = arg
+		case error:
+			if arg == nil {
+				return nil
+			}
+			e.Err = arg
+		case string:
+			e.Err = errors.New(arg)
 		case Kind:
 			e.Kind = arg
 		case UserName:
@@ -136,6 +142,11 @@ func E(op Op, err error, args ...interface{}) error {
 			_, file, line, _ := runtime.Caller(1)
 			return fmt.Errorf("errors.E: bad call from %s:%d: %v, unknown type %T, value %v in error call", file, line, args, arg, arg)
 		}
+	}
+
+	//if error was not passed
+	if e.Err == nil {
+		e.Err = errors.New(e.Kind.String())
 	}
 
 	prev, ok := e.Err.(*Error)

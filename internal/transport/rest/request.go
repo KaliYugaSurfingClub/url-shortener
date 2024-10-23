@@ -15,7 +15,7 @@ import (
 )
 
 func DecodeJSON(dst any, r *http.Request) error {
-	const op = "transport.rest.request.DecodeJSON"
+	const op errs.Op = "transport.rest.request.DecodeJSON"
 
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		return errs.E(op, err, errs.InvalidRequest)
@@ -25,7 +25,7 @@ func DecodeJSON(dst any, r *http.Request) error {
 }
 
 func DecodeURLParams(dst any, query url.Values) error {
-	const op = "transport.rest.request.DecodeURLParams"
+	const op errs.Op = "transport.rest.request.DecodeURLParams"
 
 	decoder := schema.NewDecoder()
 	decoder.IgnoreUnknownKeys(true)

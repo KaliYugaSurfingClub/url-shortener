@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"shortener/errs"
 )
 
 func NewPgxPool(postgresURL string) (*pgxpool.Pool, func(), error) {
-	const op = "storage.postgres.NewPgxPool"
+	const op errs.Op = "storage.postgres.NewPgxPool"
 
 	poolCfg, err := pgxpool.ParseConfig(postgresURL)
 	if err != nil {

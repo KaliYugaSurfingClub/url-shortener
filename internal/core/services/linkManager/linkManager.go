@@ -2,7 +2,6 @@ package linkManager
 
 import (
 	"context"
-	"errors"
 	"shortener/errs"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
@@ -19,7 +18,7 @@ func New(storage port.Repository) *LinkManager {
 }
 
 func (m *LinkManager) GetUserLinks(ctx context.Context, params model.GetLinksParams) ([]*model.Link, int64, error) {
-	const op = "core.linkManager.GetUserLinks"
+	const op errs.Op = "core.linkManager.GetUserLinks"
 
 	totalCount, err := m.storage.GetLinksCountByParams(ctx, params)
 	if err != nil {
@@ -35,14 +34,14 @@ func (m *LinkManager) GetUserLinks(ctx context.Context, params model.GetLinksPar
 }
 
 func (m *LinkManager) GetLinkClicks(ctx context.Context, params model.GetClicksParams) ([]*model.Click, int64, error) {
-	const op = "core.linkManager.GetLinkClicks"
+	const op errs.Op = "core.linkManager.GetLinkClicks"
 
 	ok, err := m.storage.DoesLinkBelongsToUser(ctx, params.LinkId, params.UserId)
 	if err != nil {
 		return nil, 0, errs.E(op, err)
 	}
 	if !ok {
-		return nil, 0, errs.E(op, errors.New("link does not belongs to user"), errs.Unauthorized)
+		return nil, 0, errs.E(op, "link does not belongs to user", errs.Unauthorized)
 	}
 
 	totalCount, err := m.storage.GetClicksCountByParams(ctx, params)

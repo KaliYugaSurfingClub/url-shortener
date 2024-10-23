@@ -30,7 +30,7 @@ func New(handlers Handlers, JWTOptions config.Auth, httpOptions config.HTTPServe
 
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
-	router.Use(mw.NewLogger(log))
+	router.Use(mw.Logger(log))
 	router.Use(mw.InjectUserIdToCtx(jwtOpt))
 
 	//todo temporary

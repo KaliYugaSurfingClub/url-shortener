@@ -2,7 +2,6 @@ package linkShortener
 
 import (
 	"context"
-	"errors"
 	"shortener/errs"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
@@ -24,7 +23,7 @@ func New(storage port.Repository, generator port.Generator, triesToGenerate int)
 }
 
 func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (link *model.Link, err error) {
-	const op = "core.services.LinkShortener.Short"
+	const op errs.Op = "core.services.LinkShortener.Short"
 
 	if toSave.Alias == "" {
 		return s.generateAndSave(ctx, &toSave)
@@ -38,7 +37,7 @@ func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (link *mod
 }
 
 func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (link *model.Link, err error) {
-	const op = "core.services.LinkShortener.save"
+	const op errs.Op = "core.services.LinkShortener.save"
 
 	if toSave.CustomName == "" {
 		toSave.CustomName = toSave.Alias
@@ -52,7 +51,7 @@ func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (link *mod
 }
 
 func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (*model.Link, error) {
-	const op = "core.services.LinkShortener.generateAndSave"
+	const op errs.Op = "core.services.LinkShortener.generateAndSave"
 
 	noCustomName := toSave.CustomName == ""
 
@@ -77,5 +76,5 @@ func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link)
 		}
 	}
 
-	return nil, errs.E(op, errors.New("failed generating alias in tries"), errs.Internal)
+	return nil, errs.E(op, "failed generating alias in tries", errs.Internal)
 }

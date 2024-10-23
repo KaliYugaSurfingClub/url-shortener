@@ -2,7 +2,6 @@ package mw
 
 import (
 	"context"
-	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"log/slog"
 	"net/http"
@@ -16,10 +15,29 @@ type JwtOptions struct {
 	UserIdKey  string
 }
 
+type userIdKey struct{}
+
+func ExtractUserID(ctx context.Context) (int64, bool) {
+	if ctx == nil {
+		return 0, false
+	}
+
+	id, ok := ctx.Value(userIdKey{}).(int64)
+	if !ok {
+		return 0, false
+	}
+
+	return id, true
+}
+
+// InjectUserIdToCtx use mw.Logger
 func InjectUserIdToCtx(options JwtOptions) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			log := ExtractLog(r.Context(), "transport.rest.mw.InjectUserIdToCtx") //todo op and take in function
+			log := ExtractLog(r.Context(), "transport.rest.mw.InjectUserIdToCtx")
+			if log == nil {
+				panic("log is nil")
+			}
 
 			ctx := r.Context()
 
@@ -60,28 +78,18 @@ func InjectUserIdToCtx(options JwtOptions) func(http.Handler) http.Handler {
 	}
 }
 
-type userIdKey struct{}
-
-func ExtractUserID(ctx context.Context) (int64, bool) {
-	if ctx == nil {
-		return 0, false
-	}
-
-	id, ok := ctx.Value(userIdKey{}).(int64)
-	if !ok {
-		return 0, false
-	}
-
-	return id, true
-}
-
+// CheckAuth use mw.Logger
 func CheckAuth(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		log := ExtractLog(r.Context(), "transport.rest.mw.InjectUserIdToCtx")
+		if log == nil {
+			panic("log is nil")
+		}
+
 		_, ok := ExtractUserID(r.Context())
 
 		if !ok {
-			rest.Error(w, log, errs.E("", errors.New(""), errs.Unauthorized))
+			rest.Error(w, log, errs.E(errs.Unauthorized))
 			return
 		}
 

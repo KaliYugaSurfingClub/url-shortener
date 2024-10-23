@@ -75,6 +75,6 @@ func main() {
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Error("Unable to start server: ", err)
-		os.Exit(1) //todo
+		os.Exit(1) //todo shutdown
 	}
 }

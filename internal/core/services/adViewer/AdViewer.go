@@ -2,7 +2,6 @@ package adViewer
 
 import (
 	"context"
-	"errors"
 	"shortener/errs"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
@@ -29,14 +28,14 @@ func (v *AdViewer) OnCompleteErrs() <-chan error {
 }
 
 func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.ClickMetadata) (*model.AdPage, error) {
-	const op = "core.services.adViewer.GetAdPage"
+	const op errs.Op = "core.services.adViewer.GetAdPage"
 
 	link, err := v.repo.GetLinkByAlias(ctx, alias)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
 	if link.Archived {
-		return nil, errs.E(op, errors.New("someone tries to open archived link"), errs.NotExist)
+		return nil, errs.E(op, "someone tries to open archived link", errs.NotExist)
 	}
 
 	adSourceId, err := v.adProvider.GetAdByMetadata(ctx, metadata)
@@ -65,7 +64,7 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 }
 
 func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) (string, error) {
-	const op = "core.services.adViewer.CompleteAd"
+	const op errs.Op = "core.services.adViewer.CompleteAd"
 
 	go func() {
 		if err := v.payer.Pay(context.Background(), clickId); err != nil {

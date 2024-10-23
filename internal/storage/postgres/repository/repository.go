@@ -31,7 +31,7 @@ const createLinkQuery = `
 `
 
 func (r *Repository) CreateLink(ctx context.Context, link model.Link) (*model.Link, error) {
-	const op = "storage.postgres.repository.CreateLink"
+	const op errs.Op = "storage.postgres.repository.CreateLink"
 
 	row := r.queries.QueryRow(
 		ctx, createLinkQuery, link.CreatedBy,
@@ -66,7 +66,7 @@ const GetLinkByIdQuery = `
 `
 
 func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.Link, error) {
-	const op = "storage.postgres.repository.GetLinkByAlias"
+	const op errs.Op = "storage.postgres.repository.GetLinkByAlias"
 
 	link := new(model.Link)
 
@@ -93,7 +93,7 @@ const GetLinkByClickIdQuery = `
 `
 
 func (r *Repository) GetOriginalByClickId(ctx context.Context, clickId int64) (original string, err error) {
-	const op = "storage.postgres.repository.GetOriginalByClickId"
+	const op errs.Op = "storage.postgres.repository.GetOriginalByClickId"
 
 	err = r.queries.QueryRow(ctx, GetLinkByClickIdQuery, clickId).Scan(&original)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -121,7 +121,7 @@ const GetLinksQuery = `
 `
 
 func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinksParams) ([]*model.Link, error) {
-	const op = "storage.postgres.repository.GetLinksByParams"
+	const op errs.Op = "storage.postgres.repository.GetLinksByParams"
 
 	scanFunc := func(link *model.Link, row pgx.Row) error {
 		return row.Scan(
@@ -153,7 +153,7 @@ const GetLinksCountQuery = `
 `
 
 func (r *Repository) GetLinksCountByParams(ctx context.Context, params model.GetLinksParams) (count int64, err error) {
-	const op = "storage.postgres.repository.GetLinksCountByParams"
+	const op errs.Op = "storage.postgres.repository.GetLinksCountByParams"
 
 	err = r.queries.QueryRow(ctx, GetLinksCountQuery, params.UserId, params.Archived).Scan(&count)
 	if err != nil {
@@ -170,7 +170,7 @@ const doesLinkBelongsUserQuery = `
 `
 
 func (r *Repository) DoesLinkBelongsToUser(ctx context.Context, linkId, userId int64) (belongs bool, err error) {
-	const op = "storage.postgres.repository.DoesLinkBelongsToUser"
+	const op errs.Op = "storage.postgres.repository.DoesLinkBelongsToUser"
 
 	err = r.queries.QueryRow(ctx, doesLinkBelongsUserQuery, linkId, userId).Scan(&belongs)
 
@@ -189,7 +189,7 @@ const deleteLinkQuery = `
 `
 
 func (r *Repository) DeleteLink(ctx context.Context, linkId int64) error {
-	const op = "storage.postgres.repository.DeleteLink"
+	const op errs.Op = "storage.postgres.repository.DeleteLink"
 
 	_, err := r.queries.Exec(ctx, deleteLinkQuery, linkId)
 	if err != nil {
@@ -211,7 +211,7 @@ const createClickQuery = `
 `
 
 func (r *Repository) CreateClick(ctx context.Context, click model.Click) (*model.Click, error) {
-	const op = "storage.postgres.repository.CreateClick"
+	const op errs.Op = "storage.postgres.repository.CreateClick"
 
 	row := r.queries.QueryRow(
 		ctx, createClickQuery, click.LinkId, click.AdSourceId,
@@ -244,7 +244,7 @@ const getClicksByParamsQuery = `
 `
 
 func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error) {
-	const op = "storage.postgres.repository.GetClicksByParams"
+	const op errs.Op = "storage.postgres.repository.GetClicksByParams"
 
 	scanFunc := func(click *model.Click, row pgx.Row) error {
 		return row.Scan(
@@ -276,7 +276,7 @@ const getClicksCountQuery = `
 `
 
 func (r *Repository) GetClicksCountByParams(ctx context.Context, params model.GetClicksParams) (count int64, err error) {
-	const op = "storage.postgres.repository.GetClicksCount"
+	const op errs.Op = "storage.postgres.repository.GetClicksCount"
 
 	err = r.queries.QueryRow(ctx, getClicksCountQuery, params.LinkId).Scan(&count)
 	if err != nil {

@@ -20,7 +20,7 @@ type getEntityByParamsOptions[T any] struct {
 }
 
 func getEntityByParams[T any](ctx context.Context, opt getEntityByParamsOptions[T]) ([]*T, error) {
-	const op = "storage.postgres.repository.getEntityByParams"
+	const op errs.Op = "storage.postgres.repository.getEntityByParams"
 
 	entities := make([]*T, 0, opt.pagination.Size)
 
