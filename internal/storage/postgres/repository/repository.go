@@ -65,8 +65,6 @@ const GetLinkByIdQuery = `
 	LIMIT 1
 `
 
-//todo dublicate
-
 func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.Link, error) {
 	const op errs.Op = "storage.postgres.repository.GetLinkByAlias"
 
