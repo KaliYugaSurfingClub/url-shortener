@@ -8,7 +8,7 @@ import (
 type Repository interface {
 	CreateLink(ctx context.Context, link model.Link) (*model.Link, error)
 	GetLinkByAlias(ctx context.Context, alias string) (*model.Link, error)
-	GetOriginalByClickId(ctx context.Context, clickId int64) (string, error)
+	GetOriginalByClickId(ctx context.Context, clickId int64) (*model.Link, error)
 	GetLinksByParams(ctx context.Context, params model.GetLinksParams) ([]*model.Link, error)
 	GetLinksCountByParams(ctx context.Context, params model.GetLinksParams) (int64, error)
 	DoesLinkBelongsToUser(ctx context.Context, linkId int64, userId int64) (bool, error)

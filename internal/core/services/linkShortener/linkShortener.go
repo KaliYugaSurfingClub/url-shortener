@@ -22,22 +22,24 @@ func New(storage port.Repository, generator port.Generator, triesToGenerate int)
 	}, nil
 }
 
-func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (link *model.Link, err error) {
+func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (*model.Link, error) {
 	const op errs.Op = "core.services.LinkShortener.Short"
 
+	saveFunc := s.saveWithAlias
 	if toSave.Alias == "" {
-		return s.generateAndSave(ctx, &toSave)
+		saveFunc = s.saveWithoutAlias
 	}
 
-	if link, err = s.save(ctx, &toSave); err != nil {
+	link, err := saveFunc(ctx, &toSave)
+	if err != nil {
 		return nil, errs.E(op, err)
 	}
 
 	return link, nil
 }
 
-func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (link *model.Link, err error) {
-	const op errs.Op = "core.services.LinkShortener.save"
+func (s *LinkShortener) saveWithAlias(ctx context.Context, toSave *model.Link) (link *model.Link, err error) {
+	const op errs.Op = "core.services.LinkShortener.saveWithAlias"
 
 	if toSave.CustomName == "" {
 		toSave.CustomName = toSave.Alias
@@ -50,8 +52,8 @@ func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (link *mod
 	return link, nil
 }
 
-func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (*model.Link, error) {
-	const op errs.Op = "core.services.LinkShortener.generateAndSave"
+func (s *LinkShortener) saveWithoutAlias(ctx context.Context, toSave *model.Link) (*model.Link, error) {
+	const op errs.Op = "core.services.LinkShortener.saveWithoutAlias"
 
 	noCustomName := toSave.CustomName == ""
 

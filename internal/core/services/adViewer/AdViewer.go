@@ -72,10 +72,13 @@ func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) (string, error
 		}
 	}()
 
-	original, err := v.repo.GetOriginalByClickId(ctx, clickId) //todo if archived
+	link, err := v.repo.GetOriginalByClickId(ctx, clickId)
 	if err != nil {
 		return "", errs.E(op, err)
 	}
+	if link.Archived {
+		return "", errs.E(op, "someone tries to complete archived link", errs.NotExist)
+	}
 
-	return original, nil
+	return link.Original, nil
 }

@@ -65,6 +65,8 @@ const GetLinkByIdQuery = `
 	LIMIT 1
 `
 
+//todo dublicate
+
 func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.Link, error) {
 	const op errs.Op = "storage.postgres.repository.GetLinkByAlias"
 
@@ -86,24 +88,30 @@ func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.L
 }
 
 const GetLinkByClickIdQuery = `
-	SELECT l.original
+	SELECT l.id, l.person_id, l.original, l.alias, l.custom_name, l.archived, l.created_at
 	FROM 
 	( SELECT link_id FROM click WHERE id = $1 ) AS c
 	JOIN link AS l ON l.id = link_id
 `
 
-func (r *Repository) GetOriginalByClickId(ctx context.Context, clickId int64) (original string, err error) {
+func (r *Repository) GetOriginalByClickId(ctx context.Context, clickId int64) (*model.Link, error) {
 	const op errs.Op = "storage.postgres.repository.GetOriginalByClickId"
 
-	err = r.queries.QueryRow(ctx, GetLinkByClickIdQuery, clickId).Scan(&original)
+	link := new(model.Link)
+
+	err := r.queries.QueryRow(ctx, GetLinkByClickIdQuery, clickId).Scan(
+		&link.Id, &link.CreatedBy, &link.Original, &link.Alias,
+		&link.CustomName, &link.Archived, &link.CreatedAt,
+	)
+
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", errs.E(op, err, errs.NotExist)
+		return nil, errs.E(op, err, errs.NotExist)
 	}
 	if err != nil {
-		return "", errs.E(op, err, errs.Database)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
-	return original, nil
+	return link, nil
 }
 
 const GetLinksQuery = `
