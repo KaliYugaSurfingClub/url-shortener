@@ -77,11 +77,14 @@ func (s *Sort) SortToModel(sortBy map[string]model.SortBy) (res model.Sort) {
 }
 
 func Validate(ptr any, rules ...[]*validation.FieldRules) error {
-	return errs.E(
-		"transport.rest.request.Validate",
-		validation.ValidateStruct(ptr, slices.Concat(rules...)...),
-		errs.Validation,
-	)
+	const op errs.Op = "transport.rest.request.Validate"
+
+	err := validation.ValidateStruct(ptr, slices.Concat(rules...)...)
+	if err == nil {
+		return nil
+	}
+
+	return errs.E(op, err, errs.Validation)
 }
 
 var OrderMap = map[string]model.Order{

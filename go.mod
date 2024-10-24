@@ -3,7 +3,7 @@ module shortener
 go 1.23.0
 
 require (
-	github.com/KaliYugaSurfingClub/errs v0.1.0
+	github.com/KaliYugaSurfingClub/errs v0.1.2
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.1

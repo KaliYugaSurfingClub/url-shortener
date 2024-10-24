@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/jackc/pgx/v5"
 
 	"shortener/internal/core/model"
