@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"shortener/errs"
+
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres/builder"
 	"shortener/internal/storage/postgres/transaction"

@@ -3,6 +3,7 @@ module shortener
 go 1.23.0
 
 require (
+	github.com/KaliYugaSurfingClub/errs v0.1.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -37,8 +38,8 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/sync v0.8.0 // indirect

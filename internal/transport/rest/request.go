@@ -2,12 +2,13 @@ package rest
 
 import (
 	"encoding/json"
+	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/go-ozzo/ozzo-validation"
 	"github.com/gorilla/schema"
 	"math"
 	"net/http"
 	"net/url"
-	"shortener/errs"
+
 	"shortener/internal/core/model"
 	"shortener/internal/utils/valkit"
 	"slices"

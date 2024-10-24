@@ -3,9 +3,9 @@ package rest
 import (
 	"encoding/json"
 	"errors"
+	"github.com/KaliYugaSurfingClub/errs"
 	"log/slog"
 	"net/http"
-	"shortener/errs"
 )
 
 const (

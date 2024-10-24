@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"shortener/errs"
 )
 
 func NewPgxPool(postgresURL string) (*pgxpool.Pool, func(), error) {

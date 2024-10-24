@@ -2,3 +2,4 @@ storage.db
 cmd/storageTests/test.db
 .env
 .idea
+

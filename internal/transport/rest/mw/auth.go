@@ -2,10 +2,11 @@ package mw
 
 import (
 	"context"
+	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/golang-jwt/jwt/v5"
 	"log/slog"
 	"net/http"
-	"shortener/errs"
+
 	"shortener/internal/transport/rest"
 )
 

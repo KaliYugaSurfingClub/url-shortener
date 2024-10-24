@@ -2,7 +2,7 @@ package linkShortener
 
 import (
 	"context"
-	"shortener/errs"
+	"github.com/KaliYugaSurfingClub/errs"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
