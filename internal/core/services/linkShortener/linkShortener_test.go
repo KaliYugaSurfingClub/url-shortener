@@ -1,46 +1,14 @@
 package linkShortener
 
-//
-//import (
-//	"context"
-//	"errors"
-//	"github.com/stretchr/testify/require"
-//	"shortener/internal/core"
-//	"shortener/internal/core/model"
-//	"slices"
-//	"testing"
-//)
-//
-//var someErr = errors.New("some error")
-//
-//type linkStorage struct {
-//	data []*model.Link
-//}
-//
-//func newStorage() *linkStorage {
-//	return &linkStorage{data: make([]*model.Link, 0)}
-//}
-//
-//func (s *linkStorage) Save(_ context.Context, toSave model.Link) (saved *model.Link, err error) {
-//	aliasExists := slices.ContainsFunc(s.data, func(link *model.Link) bool {
-//		return link.Alias == toSave.Alias
-//	})
-//
-//	if aliasExists {
-//		return nil, core.ErrAliasExists
-//	}
-//
-//	nameExists := slices.ContainsFunc(s.data, func(link *model.Link) bool {
-//		return link.CustomName == toSave.CustomName && link.CreatedBy == toSave.CreatedBy
-//	})
-//
-//	if nameExists {
-//		return nil, core.ErrCustomNameExists
-//	}
-//
-//	s.data = append(s.data, &toSave)
-//	return &toSave, nil
-//}
+import (
+	"github.com/stretchr/testify/require"
+	"testing"
+)
+
+func TESTf(t *testing.T) {
+	require.Equal(t, 1, 1)
+}
+
 //
 //type serialGenerator struct {
 //	aliases []string
