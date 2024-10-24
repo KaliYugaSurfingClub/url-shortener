@@ -6,7 +6,6 @@ import (
 	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres"

@@ -3,7 +3,6 @@ package linkManager
 import (
 	"context"
 	"github.com/KaliYugaSurfingClub/errs"
-
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
 )

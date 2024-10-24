@@ -6,7 +6,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"log/slog"
 	"net/http"
-
 	"shortener/internal/transport/rest"
 )
 

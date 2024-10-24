@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/jackc/pgx/v5"
-
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres/builder"
 	"shortener/internal/storage/postgres/transaction"
