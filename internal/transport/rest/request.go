@@ -1,29 +1,45 @@
-package request
+package rest
 
 import (
+	"encoding/json"
+	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/go-ozzo/ozzo-validation"
 	"github.com/gorilla/schema"
 	"math"
+	"net/http"
 	"net/url"
+
 	"shortener/internal/core/model"
 	"shortener/internal/utils/valkit"
 	"slices"
 	"strconv"
 )
 
+func DecodeJSON(dst any, r *http.Request) error {
+	const op errs.Op = "transport.rest.request.DecodeJSON"
+
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		return errs.E(op, err, errs.InvalidRequest)
+	}
+
+	return nil
+}
+
 func DecodeURLParams(dst any, query url.Values) error {
+	const op errs.Op = "transport.rest.request.DecodeURLParams"
+
 	decoder := schema.NewDecoder()
 	decoder.IgnoreUnknownKeys(true)
 
 	if err := decoder.Decode(dst, query); err != nil {
-		return err
+		return errs.E(op, err, errs.InvalidRequest)
 	}
 
 	return nil
 }
 
 type Pagination struct {
-	Page string `schema:"page" json:"page"`
+	Page string `schema:"page" json:"page"` // parse url params to string for custom validation errors
 	Size string `schema:"size" json:"size"`
 }
 
@@ -61,7 +77,14 @@ func (s *Sort) SortToModel(sortBy map[string]model.SortBy) (res model.Sort) {
 }
 
 func Validate(ptr any, rules ...[]*validation.FieldRules) error {
-	return validation.ValidateStruct(ptr, slices.Concat(rules...)...)
+	const op errs.Op = "transport.rest.request.Validate"
+
+	err := validation.ValidateStruct(ptr, slices.Concat(rules...)...)
+	if err == nil {
+		return nil
+	}
+
+	return errs.E(op, err, errs.Validation)
 }
 
 var OrderMap = map[string]model.Order{

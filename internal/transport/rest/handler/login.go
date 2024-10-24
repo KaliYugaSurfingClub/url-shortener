@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-//todo update
+//todo temp
 
 func Login(jwtOpt mw.JwtOptions, lifetime time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

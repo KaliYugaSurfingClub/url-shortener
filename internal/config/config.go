@@ -24,7 +24,9 @@ type HTTPServer struct {
 }
 
 type Service struct {
-	GeneratedAliasLength int `mapstructure:"generated_alias_length"`
+	GeneratedAliasLength int    `mapstructure:"generated_alias_length"`
+	TriesToGenerate      int    `mapstructure:"tries_to_generate"`
+	Alp                  string `mapstructure:"alp"`
 }
 
 type Auth struct {

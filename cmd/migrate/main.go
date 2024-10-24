@@ -9,6 +9,8 @@ import (
 	"log"
 )
 
+//todo should not be here
+
 func main() {
 	fmt.Println("start migrate")
 

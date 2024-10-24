@@ -1,4 +1,4 @@
-package response
+package rest
 
 import (
 	"shortener/internal/core/model"

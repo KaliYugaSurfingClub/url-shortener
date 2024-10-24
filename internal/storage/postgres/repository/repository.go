@@ -3,14 +3,14 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/KaliYugaSurfingClub/errs"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/storage/postgres"
 	"shortener/internal/storage/postgres/transaction"
-	"shortener/internal/utils"
 )
 
 type Repository struct {
@@ -32,7 +32,7 @@ const createLinkQuery = `
 `
 
 func (r *Repository) CreateLink(ctx context.Context, link model.Link) (*model.Link, error) {
-	const op = "storage.postgres.repository.CreateLink"
+	const op errs.Op = "storage.postgres.repository.CreateLink"
 
 	row := r.queries.QueryRow(
 		ctx, createLinkQuery, link.CreatedBy,
@@ -44,16 +44,16 @@ func (r *Repository) CreateLink(ctx context.Context, link model.Link) (*model.Li
 	if name, ok := postgres.ParseConstraintError(err); ok {
 		switch name {
 		case "link_alias_key":
-			return nil, fmt.Errorf("%s: %w", op, core.ErrAliasExists)
+			return nil, errs.E(op, err, errs.Exist, core.AliasExistsCode)
 		case "link_custom_name_person_id_key":
-			return nil, fmt.Errorf("%s: %w", op, core.ErrCustomNameExists)
+			return nil, errs.E(op, err, errs.Exist, core.CustomNameExistsCode)
 		default:
-			return nil, fmt.Errorf("%s: unexpected constraint error %w", op, err)
+			return nil, errs.E(op, err, errs.Unanticipated)
 		}
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return &link, nil
@@ -67,7 +67,7 @@ const GetLinkByIdQuery = `
 `
 
 func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.Link, error) {
-	const op = "storage.postgres.repository.GetLinkByAlias"
+	const op errs.Op = "storage.postgres.repository.GetLinkByAlias"
 
 	link := new(model.Link)
 
@@ -77,10 +77,37 @@ func (r *Repository) GetLinkByAlias(ctx context.Context, alias string) (*model.L
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
+		return nil, errs.E(op, err, errs.NotExist)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
+	}
+
+	return link, nil
+}
+
+const GetLinkByClickIdQuery = `
+	SELECT l.id, l.person_id, l.original, l.alias, l.custom_name, l.archived, l.created_at
+	FROM 
+	( SELECT link_id FROM click WHERE id = $1 ) AS c
+	JOIN link AS l ON l.id = link_id
+`
+
+func (r *Repository) GetOriginalByClickId(ctx context.Context, clickId int64) (*model.Link, error) {
+	const op errs.Op = "storage.postgres.repository.GetOriginalByClickId"
+
+	link := new(model.Link)
+
+	err := r.queries.QueryRow(ctx, GetLinkByClickIdQuery, clickId).Scan(
+		&link.Id, &link.CreatedBy, &link.Original, &link.Alias,
+		&link.CustomName, &link.Archived, &link.CreatedAt,
+	)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errs.E(op, err, errs.NotExist)
+	}
+	if err != nil {
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return link, nil
@@ -100,8 +127,8 @@ const GetLinksQuery = `
 	GROUP BY l.id, l.person_id, l.original, l.alias, l.custom_name, l.archived, l.created_at
 `
 
-func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinksParams) (_ []*model.Link, err error) {
-	defer utils.WithinOp("storage.postgres.repository.GetLinksByParams", &err)
+func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinksParams) ([]*model.Link, error) {
+	const op errs.Op = "storage.postgres.repository.GetLinksByParams"
 
 	scanFunc := func(link *model.Link, row pgx.Row) error {
 		return row.Scan(
@@ -120,7 +147,12 @@ func (r *Repository) GetLinksByParams(ctx context.Context, params model.GetLinks
 		scanFunc:   scanFunc,
 	}
 
-	return getEntityByParams(ctx, opt)
+	links, err := getEntityByParams(ctx, opt)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return links, nil
 }
 
 const GetLinksCountQuery = `
@@ -128,11 +160,11 @@ const GetLinksCountQuery = `
 `
 
 func (r *Repository) GetLinksCountByParams(ctx context.Context, params model.GetLinksParams) (count int64, err error) {
-	const op = "storage.postgres.repository.GetLinksCountByParams"
+	const op errs.Op = "storage.postgres.repository.GetLinksCountByParams"
 
 	err = r.queries.QueryRow(ctx, GetLinksCountQuery, params.UserId, params.Archived).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return 0, errs.E(op, err, errs.Database)
 	}
 
 	return count, nil
@@ -145,15 +177,15 @@ const doesLinkBelongsUserQuery = `
 `
 
 func (r *Repository) DoesLinkBelongsToUser(ctx context.Context, linkId, userId int64) (belongs bool, err error) {
-	const op = "storage.postgres.repository.DoesLinkBelongsToUser"
+	const op errs.Op = "storage.postgres.repository.DoesLinkBelongsToUser"
 
 	err = r.queries.QueryRow(ctx, doesLinkBelongsUserQuery, linkId, userId).Scan(&belongs)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, fmt.Errorf("%s: %w", op, core.ErrLinkNotFound)
+		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return false, errs.E(op, err, errs.Database)
 	}
 
 	return belongs, nil
@@ -164,11 +196,11 @@ const deleteLinkQuery = `
 `
 
 func (r *Repository) DeleteLink(ctx context.Context, linkId int64) error {
-	const op = "storage.postgres.repository.DeleteLink"
+	const op errs.Op = "storage.postgres.repository.DeleteLink"
 
 	_, err := r.queries.Exec(ctx, deleteLinkQuery, linkId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return errs.E(op, err, errs.Database)
 	}
 
 	return nil
@@ -186,7 +218,7 @@ const createClickQuery = `
 `
 
 func (r *Repository) CreateClick(ctx context.Context, click model.Click) (*model.Click, error) {
-	const op = "storage.postgres.repository.CreateClick"
+	const op errs.Op = "storage.postgres.repository.CreateClick"
 
 	row := r.queries.QueryRow(
 		ctx, createClickQuery, click.LinkId, click.AdSourceId,
@@ -195,7 +227,7 @@ func (r *Repository) CreateClick(ctx context.Context, click model.Click) (*model
 
 	err := row.Scan(&click.Id, &click.AdType)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err, errs.Database)
 	}
 
 	return &click, nil
@@ -218,8 +250,8 @@ const getClicksByParamsQuery = `
 		JOIN ad_source AS s ON c.ad_source_id = s.id
 `
 
-func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClicksParams) (_ []*model.Click, err error) {
-	defer utils.WithinOp("storage.postgres.repository.GetClicksByParams", &err)
+func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error) {
+	const op errs.Op = "storage.postgres.repository.GetClicksByParams"
 
 	scanFunc := func(click *model.Click, row pgx.Row) error {
 		return row.Scan(
@@ -238,7 +270,12 @@ func (r *Repository) GetClicksByParams(ctx context.Context, params model.GetClic
 		scanFunc:   scanFunc,
 	}
 
-	return getEntityByParams(ctx, opt)
+	clicks, err := getEntityByParams(ctx, opt)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return clicks, nil
 }
 
 const getClicksCountQuery = `
@@ -246,11 +283,11 @@ const getClicksCountQuery = `
 `
 
 func (r *Repository) GetClicksCountByParams(ctx context.Context, params model.GetClicksParams) (count int64, err error) {
-	const op = "storage.postgres.repository.GetClicksCount"
+	const op errs.Op = "storage.postgres.repository.GetClicksCount"
 
 	err = r.queries.QueryRow(ctx, getClicksCountQuery, params.LinkId).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return 0, errs.E(op, err, errs.Database)
 	}
 
 	return count, nil

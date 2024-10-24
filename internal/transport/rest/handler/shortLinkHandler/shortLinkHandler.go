@@ -2,13 +2,10 @@ package shortLinkHandler
 
 import (
 	"context"
-	"errors"
-	"github.com/go-chi/render"
 	"net/http"
-	"shortener/internal/core"
 	"shortener/internal/core/model"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/mw"
-	"shortener/internal/transport/rest/response"
 )
 
 type LinkShortener interface {
@@ -35,30 +32,18 @@ func New(shortener LinkShortener) http.HandlerFunc {
 		log := mw.ExtractLog(r.Context(), "transport.Rest.ShortLink")
 		userId, _ := mw.ExtractUserID(r.Context())
 
-		defer r.Body.Close()
-
 		req := &request{}
-		if err := render.Decode(r, req); err != nil {
-			log.Info("cannot decode body", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithError(err)) //todo
+		if err := rest.DecodeJSON(req, r); err != nil {
+			rest.Error(w, log, err)
 			return
 		}
 
 		shorted, err := shortener.Short(r.Context(), *req.ToModel(userId))
-		if errors.Is(err, core.ErrAliasExists) {
-			render.JSON(w, r, response.WithError(core.ErrAliasExists))
-			return
-		}
-		if errors.Is(err, core.ErrCustomNameExists) {
-			render.JSON(w, r, response.WithError(core.ErrCustomNameExists))
-			return
-		}
 		if err != nil {
-			log.Error("cannot save link", mw.ErrAttr(err))
-			render.JSON(w, r, response.WithInternalError())
+			rest.Error(w, log, err)
 			return
 		}
 
-		render.JSON(w, r, response.WithData(response.LinkFromModel(shorted)))
+		rest.Ok(w, shorted)
 	}
 }

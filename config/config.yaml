@@ -9,6 +9,8 @@ http_server:
 
 service:
   generated_alias_length: 4
+  tries_to_generate: 5
+  alp: "abc123"
 
 auth:
   jwt_secret: "secret"

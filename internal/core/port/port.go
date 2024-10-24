@@ -8,14 +8,15 @@ import (
 type Repository interface {
 	CreateLink(ctx context.Context, link model.Link) (*model.Link, error)
 	GetLinkByAlias(ctx context.Context, alias string) (*model.Link, error)
-	GetLinksByParams(ctx context.Context, params model.GetLinksParams) (_ []*model.Link, err error)
-	GetLinksCountByParams(ctx context.Context, params model.GetLinksParams) (count int64, err error)
-	DoesLinkBelongsToUser(ctx context.Context, linkId int64, userId int64) (belongs bool, err error)
+	GetOriginalByClickId(ctx context.Context, clickId int64) (*model.Link, error)
+	GetLinksByParams(ctx context.Context, params model.GetLinksParams) ([]*model.Link, error)
+	GetLinksCountByParams(ctx context.Context, params model.GetLinksParams) (int64, error)
+	DoesLinkBelongsToUser(ctx context.Context, linkId int64, userId int64) (bool, error)
 	DeleteLink(ctx context.Context, linkId int64) error
 
 	CreateClick(ctx context.Context, click model.Click) (*model.Click, error)
-	GetClicksByParams(ctx context.Context, params model.GetClicksParams) (_ []*model.Click, err error)
-	GetClicksCountByParams(ctx context.Context, params model.GetClicksParams) (count int64, err error)
+	GetClicksByParams(ctx context.Context, params model.GetClicksParams) ([]*model.Click, error)
+	GetClicksCountByParams(ctx context.Context, params model.GetClicksParams) (int64, error)
 
 	WithinTx(ctx context.Context, fn func(tx context.Context) error) error
 }

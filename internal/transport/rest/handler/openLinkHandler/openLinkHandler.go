@@ -2,15 +2,12 @@ package openLinkHandler
 
 import (
 	"context"
-	"errors"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"net"
 	"net/http"
-	"shortener/internal/core"
 	"shortener/internal/core/model"
+	"shortener/internal/transport/rest"
 	"shortener/internal/transport/rest/mw"
-	"shortener/internal/transport/rest/response"
 	"strings"
 	"time"
 )
@@ -19,8 +16,7 @@ type AdPageProvider interface {
 	GetAdPage(ctx context.Context, alias string, metadata model.ClickMetadata) (*model.AdPage, error)
 }
 
-type data struct {
-	Original   string `json:"original"`
+type response struct {
 	AdType     string `json:"type"`
 	ClickId    int64  `json:"click_id"`
 	AdSourceId int64  `json:"ad_source_id"`
@@ -29,7 +25,6 @@ type data struct {
 func New(adPageProvider AdPageProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := mw.ExtractLog(r.Context(), "transport.rest.openShortenedHandler")
-
 		alias := chi.URLParam(r, "alias")
 
 		metadata := model.ClickMetadata{
@@ -39,23 +34,16 @@ func New(adPageProvider AdPageProvider) http.HandlerFunc {
 		}
 
 		adPage, err := adPageProvider.GetAdPage(r.Context(), alias, metadata)
-		if errors.Is(err, core.ErrLinkNotFound) {
-			log.Info(err.Error())
-			w.Write([]byte("not found")) //todo
-			return
-		}
 		if err != nil {
-			log.Info(err.Error())
-			w.Write([]byte("internal error")) //todo
+			rest.Error(w, log, err)
 			return
 		}
 
-		render.JSON(w, r, response.WithData(data{
-			Original:   adPage.Original,
+		rest.Ok(w, response{
 			ClickId:    adPage.ClickId,
 			AdSourceId: adPage.AdSourceId,
 			AdType:     string(adPage.AdType),
-		}))
+		})
 	}
 }
 

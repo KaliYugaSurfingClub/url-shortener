@@ -2,13 +2,10 @@ package adViewer
 
 import (
 	"context"
-	"fmt"
-	"shortener/internal/core"
+	"github.com/KaliYugaSurfingClub/errs"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
 )
-
-//todo shutdown
 
 type AdViewer struct {
 	repo       port.Repository
@@ -31,20 +28,19 @@ func (v *AdViewer) OnCompleteErrs() <-chan error {
 }
 
 func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.ClickMetadata) (*model.AdPage, error) {
-	const op = "core.services.adViewer.GetAdPage"
+	const op errs.Op = "core.services.adViewer.GetAdPage"
 
 	link, err := v.repo.GetLinkByAlias(ctx, alias)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err)
 	}
-
 	if link.Archived {
-		return nil, fmt.Errorf("%s: %w", op, core.ErrOpenArchivedLink)
+		return nil, errs.E(op, "someone tries to open archived link", errs.NotExist)
 	}
 
 	adSourceId, err := v.adProvider.GetAdByMetadata(ctx, metadata)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err)
 	}
 
 	clickToSave := model.Click{
@@ -55,12 +51,11 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 
 	click, err := v.repo.CreateClick(ctx, clickToSave)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, errs.E(op, err)
 	}
 
 	adPage := &model.AdPage{
 		AdType:     click.AdType,
-		Original:   link.Original,
 		ClickId:    click.Id,
 		AdSourceId: adSourceId,
 	}
@@ -68,10 +63,22 @@ func (v *AdViewer) GetAdPage(ctx context.Context, alias string, metadata model.C
 	return adPage, nil
 }
 
-func (v *AdViewer) CompleteAd(_ context.Context, clickId int64) {
-	const op = "core.services.adViewer.CompleteAd"
+func (v *AdViewer) CompleteAd(ctx context.Context, clickId int64) (string, error) {
+	const op errs.Op = "core.services.adViewer.CompleteAd"
 
-	if err := v.payer.Pay(context.Background(), clickId); err != nil {
-		v.payErrs <- fmt.Errorf("%s: %w", op, err)
+	go func() {
+		if err := v.payer.Pay(context.Background(), clickId); err != nil {
+			v.payErrs <- errs.E(op, err)
+		}
+	}()
+
+	link, err := v.repo.GetOriginalByClickId(ctx, clickId)
+	if err != nil {
+		return "", errs.E(op, err)
 	}
+	if link.Archived {
+		return "", errs.E(op, "someone tries to complete archived link", errs.NotExist)
+	}
+
+	return link.Original, nil
 }

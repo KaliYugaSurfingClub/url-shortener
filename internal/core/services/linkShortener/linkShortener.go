@@ -2,11 +2,10 @@ package linkShortener
 
 import (
 	"context"
-	"errors"
+	"github.com/KaliYugaSurfingClub/errs"
 	"shortener/internal/core"
 	"shortener/internal/core/model"
 	"shortener/internal/core/port"
-	"shortener/internal/utils"
 )
 
 type LinkShortener struct {
@@ -16,10 +15,6 @@ type LinkShortener struct {
 }
 
 func New(storage port.Repository, generator port.Generator, triesToGenerate int) (*LinkShortener, error) {
-	if triesToGenerate <= 0 {
-		return nil, errors.New("triesToGenerate can not be less than 0")
-	}
-
 	return &LinkShortener{
 		storage,
 		generator,
@@ -27,25 +22,39 @@ func New(storage port.Repository, generator port.Generator, triesToGenerate int)
 	}, nil
 }
 
-func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (_ *model.Link, err error) {
-	defer utils.WithinOp("core.manager.LinkShortener.Short", &err)
+func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (*model.Link, error) {
+	const op errs.Op = "core.services.LinkShortener.Short"
 
+	saveFunc := s.saveWithAlias
 	if toSave.Alias == "" {
-		return s.generateAndSave(ctx, &toSave)
+		saveFunc = s.saveWithoutAlias
 	}
 
-	return s.save(ctx, &toSave)
+	link, err := saveFunc(ctx, &toSave)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return link, nil
 }
 
-func (s *LinkShortener) save(ctx context.Context, toSave *model.Link) (*model.Link, error) {
+func (s *LinkShortener) saveWithAlias(ctx context.Context, toSave *model.Link) (link *model.Link, err error) {
+	const op errs.Op = "core.services.LinkShortener.saveWithAlias"
+
 	if toSave.CustomName == "" {
 		toSave.CustomName = toSave.Alias
 	}
 
-	return s.storage.CreateLink(ctx, *toSave)
+	if link, err = s.storage.CreateLink(ctx, *toSave); err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return link, nil
 }
 
-func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link) (*model.Link, error) {
+func (s *LinkShortener) saveWithoutAlias(ctx context.Context, toSave *model.Link) (*model.Link, error) {
+	const op errs.Op = "core.services.LinkShortener.saveWithoutAlias"
+
 	noCustomName := toSave.CustomName == ""
 
 	for i := 0; i < s.triesToGenerate; i++ {
@@ -59,13 +68,15 @@ func (s *LinkShortener) generateAndSave(ctx context.Context, toSave *model.Link)
 		if err == nil {
 			return saved, nil
 		}
-		if !errors.Is(err, core.ErrAliasExists) && !errors.Is(err, core.ErrCustomNameExists) {
-			return nil, err
+		//user already has link with this customName
+		if !noCustomName && err.(*errs.Error).Code == core.CustomNameExistsCode {
+			return nil, errs.E(op, err)
 		}
-		if !noCustomName && errors.Is(err, core.ErrCustomNameExists) {
-			return nil, err
+		//some internal error
+		if errs.KindIs(err, errs.Database) {
+			return nil, errs.E(op, err)
 		}
 	}
 
-	return nil, core.ErrCantGenerateInTries
+	return nil, errs.E(op, "failed generating alias in tries", errs.Internal)
 }
