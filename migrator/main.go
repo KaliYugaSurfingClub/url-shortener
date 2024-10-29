@@ -7,16 +7,16 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"log"
+	"os"
 )
 
-//todo should not be here
-
 func main() {
-	fmt.Println("start migrate")
+	dbURL, ok := os.LookupEnv("POSTGRES_URL")
+	if !ok {
+		log.Fatal("POSTGRES_URL environment variable not set")
+	}
 
-	//todo literal
-	dbURL := "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
-	migratePath := "file://C:/Users/leono/Desktop/prog/go/shortener/tools/migrate"
+	migratePath := "file://migrations"
 
 	m, err := migrate.New(migratePath, dbURL)
 	if err != nil {

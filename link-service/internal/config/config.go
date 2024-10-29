@@ -47,6 +47,8 @@ func MustLoad() *Config {
 		log.Fatal(".env file with CONFIG_PATH variable not found")
 	}
 
+	configPath = ""
+
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Fatalf("Yaml config file does not exist: %s", configPath)
 	}
