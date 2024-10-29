@@ -1,21 +1,21 @@
-FROM golang:1.20-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
-RUN apk --no-cache add bash git make gcc gettext
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates postgresql-client && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/local/src
 
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -o migrate .
+RUN go build -o ./../bin/migrator cmd/migrator/main.go
 
-COPY ./migrations ./migrations
+FROM alpine AS runner
 
-ENV POSTGRES_URL="postgres url was not set"
+WORKDIR /usr/local/bin
 
-CMD ["./migrate"]
+COPY --from=builder /usr/local/bin/migrator ./
+COPY migrations migrations
+
+ENV POSTGRES_URL="POSTGRES_URL was not set"
+
+CMD ["./migrator"]
+

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"log"
 	"os"
@@ -8,14 +9,14 @@ import (
 )
 
 type Config struct {
-	PostgresURL string     `mapstructure:"postgres_url"`
+	PostgresURL string
 	HTTPServer  HTTPServer `mapstructure:"http_server"`
 	Service     Service    `mapstructure:"service"`
 	Auth        Auth       `mapstructure:"auth"`
 }
 
 type HTTPServer struct {
-	Address           string        `mapstructure:"address"`
+	Address           string
 	WriteTimeout      time.Duration `mapstructure:"write_timeout"`
 	ReadHeaderTimeout time.Duration `mapstructure:"read_header_timeout"`
 	ReadTimeout       time.Duration `mapstructure:"read_timeout"`
@@ -34,7 +35,15 @@ type Auth struct {
 	UserIdCookieKey string `mapstructure:"user_id_cookie_name"`
 }
 
-// todo local dev...
+//todo local dev...
+//todo lib for work with config
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("unable to load .env file")
+	}
+}
+
 func MustLoad() *Config {
 	configPath := "./config/config.local.yaml"
 
@@ -53,6 +62,15 @@ func MustLoad() *Config {
 	if err := viper.Unmarshal(&cfg); err != nil {
 		log.Fatalf("Unable to decode into struct: %v", err)
 	}
+
+	var ok bool
+
+	cfg.PostgresURL, ok = os.LookupEnv("POSTGRES_URL")
+	if !ok {
+		log.Fatalf("POSTGRES_URL environment variable is not set")
+	}
+
+	cfg.HTTPServer.Address = "0.0.0.0:8080"
 
 	return &cfg
 }

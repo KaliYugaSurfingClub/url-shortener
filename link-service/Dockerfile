@@ -15,5 +15,9 @@ WORKDIR /usr/local/bin
 COPY --from=builder /usr/local/bin/link-service ./
 COPY config config
 
+ENV POSTGRES_URL="POSTGRES_URL was not set"
+
+EXPOSE 8080
+
 CMD ["./link-service"]
 

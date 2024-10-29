@@ -1,7 +1,4 @@
-postgres_url: "postgres://postgres:postgres@localhost:5432/shortener?sslmode=disable"
-
 http_server:
-  address: "0.0.0.0:8080"
   write_timeout: 10s
   read_header_timeout: 3s
   read_timeout: 15s

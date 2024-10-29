@@ -45,7 +45,8 @@ func main() {
 	db, cancel, err := postgres.NewPgxPool(cfg.PostgresURL)
 	if err != nil {
 		log.Error("unable to connect to postgres", mw.ErrAttr(err))
-		return
+		cancel()
+		os.Exit(1)
 	}
 
 	log.Info("connection with postgres established")
@@ -76,10 +77,11 @@ func main() {
 	}
 
 	server := server.New(handlers, cfg.Auth, cfg.HTTPServer, log)
-
-	log.Info(fmt.Sprintf("server started on %s", cfg.HTTPServer.Address))
 	if err := server.ListenAndServe(); err != nil {
 		log.Error("Unable to start server: ", err)
-		os.Exit(1) //todo shutdown
+		cancel()
+		os.Exit(1)
 	}
+
+	log.Info(fmt.Sprintf("server started on %s", cfg.HTTPServer.Address))
 }
