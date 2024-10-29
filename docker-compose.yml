@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: shortener
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - internal_net
+
+  migrator:
+    restart: on-failure
+    build:
+      context: ./migrator
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_URL: postgres://postgres:postgres@postgres:5432/shortener?sslmode=disable
+    depends_on:
+      - postgres
+    networks:
+      - internal_net
+    volumes:
+      - ./migrator/migrations:/app/migrations
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - internal_net
+
+networks:
+  internal_net:
+
+volumes:
+  postgres_data:
+  migrations_scripts:
+
