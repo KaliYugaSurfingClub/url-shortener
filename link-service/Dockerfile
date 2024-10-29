@@ -1,17 +1,19 @@
-FROM golang:1.23
+FROM golang:1.23-alpine AS builder
 
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates postgresql-client && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/local/src
 
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -o link-service ./..
+RUN go build -o ./../bin/link-service cmd/link-service/main.go
 
-ENV CONFIG_PATH="/app/config/config.local.yaml"
+FROM alpine AS runner
+
+WORKDIR /usr/local/bin
+
+COPY --from=builder /usr/local/bin/link-service ./
+COPY config config
 
 CMD ["./link-service"]
+

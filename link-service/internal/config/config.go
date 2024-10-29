@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"log"
 	"os"
@@ -35,19 +34,9 @@ type Auth struct {
 	UserIdCookieKey string `mapstructure:"user_id_cookie_name"`
 }
 
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("unable to load .env file")
-	}
-}
-
+// todo local dev...
 func MustLoad() *Config {
-	configPath, exists := os.LookupEnv("CONFIG_PATH")
-	if !exists {
-		log.Fatal(".env file with CONFIG_PATH variable not found")
-	}
-
-	configPath = ""
+	configPath := "./config/config.local.yaml"
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Fatalf("Yaml config file does not exist: %s", configPath)

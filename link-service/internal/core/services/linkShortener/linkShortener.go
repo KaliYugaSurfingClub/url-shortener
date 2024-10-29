@@ -14,12 +14,12 @@ type LinkShortener struct {
 	triesToGenerate int
 }
 
-func New(storage port.Repository, generator port.Generator, triesToGenerate int) (*LinkShortener, error) {
+func New(storage port.Repository, generator port.Generator, triesToGenerate int) *LinkShortener {
 	return &LinkShortener{
 		storage,
 		generator,
 		triesToGenerate,
-	}, nil
+	}
 }
 
 func (s *LinkShortener) Short(ctx context.Context, toSave model.Link) (*model.Link, error) {

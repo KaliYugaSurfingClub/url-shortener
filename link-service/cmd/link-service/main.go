@@ -40,18 +40,22 @@ func main() {
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
+	log.Info("logger enabled")
+
 	db, cancel, err := postgres.NewPgxPool(cfg.PostgresURL)
 	if err != nil {
 		log.Error("unable to connect to postgres", mw.ErrAttr(err))
-		cancel()
+		return
 	}
+
+	log.Info("connection with postgres established")
 
 	defer cancel()
 
 	repo := repository.New(db)
 
 	aliasGenerator := generator.New([]rune(cfg.Service.Alp), cfg.Service.GeneratedAliasLength)
-	shortener, err := linkShortener.New(repo, aliasGenerator, cfg.Service.TriesToGenerate)
+	shortener := linkShortener.New(repo, aliasGenerator, cfg.Service.TriesToGenerate)
 	linkService := linkManager.New(repo)
 
 	adViewManager := adViewer.New(repo, &FakePayer{}, &FakeAdProvider{})
@@ -73,6 +77,7 @@ func main() {
 
 	server := server.New(handlers, cfg.Auth, cfg.HTTPServer, log)
 
+	log.Info(fmt.Sprintf("server started on %s", cfg.HTTPServer.Address))
 	if err := server.ListenAndServe(); err != nil {
 		log.Error("Unable to start server: ", err)
 		os.Exit(1) //todo shutdown
