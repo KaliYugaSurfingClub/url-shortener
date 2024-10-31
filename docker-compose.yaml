@@ -3,7 +3,6 @@ version: '3.9'
 services:
   postgres:
     image: postgres:15-alpine
-    restart: always
     environment:
       POSTGRES_DB: shortener
       POSTGRES_USER: postgres
@@ -17,7 +16,6 @@ services:
 
   adminer:
     image: adminer
-    restart: always
     ports:
       - "9999:8080"
     networks:
