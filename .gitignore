@@ -1,5 +1,5 @@
 storage.db
-link-service/cmd/storageTests/test.db
+services/link/cmd/storageTests/test.db
 .env
 .idea
 
