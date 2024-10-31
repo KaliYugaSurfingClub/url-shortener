@@ -6,16 +6,18 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -o ./../bin/migrator cmd/migrator/main.go
+RUN go build -o ./../bin/app cmd/app/main.go
 
 FROM alpine AS runner
 
 WORKDIR /usr/local/bin
 
-COPY --from=builder /usr/local/bin/migrator ./
-COPY migrations migrations
+COPY --from=builder /usr/local/bin/app ./
+COPY config config
 
 ENV POSTGRES_URL="POSTGRES_URL was not set"
 
-CMD ["./migrator"]
+EXPOSE 8081
+
+CMD ["./app"]
 
