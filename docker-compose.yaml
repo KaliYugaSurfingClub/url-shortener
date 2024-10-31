@@ -65,23 +65,6 @@ services:
       - KAFKA_CLUSTERS_0_NAME=kraft
       - DYNAMIC_CONFIG_ENABLED=true
 
-#  create_topic:
-#    image: confluentinc/cp-kafka:7.2.1
-#    restart: on-failure
-#    depends_on:
-#      - kafka
-#    entrypoint:
-#      - /bin/sh
-#      - -c
-#      - |
-#        /usr/bin/kafka-topics --create \
-#        --topic click_statuses \
-#        --bootstrap-server kafka:29092 \
-#        --partitions 3 \
-#        --replication-factor 1
-#    networks:
-#      - internal_net
-
 networks:
   internal_net:
 
